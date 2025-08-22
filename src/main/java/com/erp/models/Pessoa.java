@@ -1,27 +1,13 @@
 package com.erp.models;
 
-public class Pessoa {
-    private String id;
-    private int tipo; // 1 - Cliente, 2 - Fornecedor, 3 - Funcionario
-    private String nome;
 
-    public Pessoa(String id, int tipo, String nome) {
-        this.id = id;
-        this.tipo = tipo;
-        this.nome = nome;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public int getTipo() {
-        return tipo;
-    }
-
-    public String getNome() {
-        return nome;
-    }
+/**
+ * Conversão para classe record, além de moderno, é próprio para
+ * classes que representam dados
+ *
+ * @param tipo 1 - Cliente, 2 - Fornecedor, 3 - Funcionario
+ */
+public record Pessoa(String id, int tipo, String nome) {
 
     @Override
     public String toString() {

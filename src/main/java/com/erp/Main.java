@@ -1,6 +1,6 @@
 package com.erp;
 
-import com.erp.models.Estoque;
+import com.erp.repository.Estoque;
 
 import java.io.IOException;
 import java.util.Scanner;

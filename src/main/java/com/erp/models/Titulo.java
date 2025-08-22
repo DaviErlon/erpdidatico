@@ -1,11 +1,14 @@
 package com.erp.models;
 
+/**
+ * Classe só não é record pois possui validação do parametro paga
+ */
 public class Titulo {
-    private String id;
-    private double quantidade;
+    private final String id;
+    private final double quantidade;
     private boolean paga;
-    private String pessoaId;
-    private String tipoTitulo; // "a pagar" ou "a receber"
+    private final String pessoaId;
+    private final String tipoTitulo; // "a pagar" ou "a receber"
 
     public Titulo(String id, double quantidade, boolean paga, String pessoaId, String tipoTitulo) {
         this.id = id;

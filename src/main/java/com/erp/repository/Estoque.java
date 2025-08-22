@@ -1,16 +1,23 @@
-package com.erp.models;
+package com.erp.repository;
+
+import com.erp.models.Pessoa;
+import com.erp.models.Produto;
+import com.erp.models.Titulo;
 
 import java.io.*;
 import java.util.*;
 
+/**
+ * Esta classe gerencia os dados do programa
+ */
 public class Estoque {
     private List<Produto> produtos;
     private List<Titulo> titulos;
     private List<Pessoa> pessoas;
 
-    private static final String PRODUTOS_ARQUIVO = "produtos.txt";
-    private static final String TITULOS_ARQUIVO = "titulos.txt";
-    private static final String PESSOAS_ARQUIVO = "pessoas.txt";
+    private static final String PRODUTOS_ARQUIVO = "data/produtos.txt";
+    private static final String TITULOS_ARQUIVO = "data/titulos.txt";
+    private static final String PESSOAS_ARQUIVO = "data/pessoas.txt";
 
     public Estoque() throws IOException {
         produtos = new ArrayList<>();
@@ -42,7 +49,7 @@ public class Estoque {
         System.out.print("Nome do Produto: ");
         String nome = scanner.nextLine();
         System.out.print("Preço do Produto: ");
-        double preco = scanner.nextDouble();
+        double preco = Double.parseDouble(scanner.nextLine());;
         scanner.nextLine();
 
         Produto produto = new Produto(id, nome, preco);
@@ -54,7 +61,7 @@ public class Estoque {
     public void listaProdutos() {
         System.out.println("Produtos:");
         for (Produto produto : produtos) {
-            System.out.println(produto.getId() + " - " + produto.getNome() + " - R$ " + produto.getPreco());
+            System.out.println(produto.id() + " - " + produto.nome() + " - R$ " + produto.preco());
         }
     }
 
@@ -64,7 +71,7 @@ public class Estoque {
 
         Produto produto = null;
         for (Produto p : produtos) {
-            if (p.getId().equals(produtoId)) {
+            if (p.id().equals(produtoId)) {
                 produto = p;
                 break;
             }
@@ -77,7 +84,7 @@ public class Estoque {
                 return;
             }
 
-            Titulo titulo = new Titulo(UUID.randomUUID().toString(), produto.getPreco(), false, fornecedor.getId(), "a pagar");
+            Titulo titulo = new Titulo(UUID.randomUUID().toString(), produto.preco(), false, fornecedor.id(), "a pagar");
             titulos.add(titulo);
             saveTitulos();
             System.out.println("Compra registrada. Título a pagar gerado: " + titulo.getId());
@@ -92,7 +99,7 @@ public class Estoque {
 
         Produto produto = null;
         for (Produto p : produtos) {
-            if (p.getId().equals(produtoId)) {
+            if (p.id().equals(produtoId)) {
                 produto = p;
                 break;
             }
@@ -105,7 +112,7 @@ public class Estoque {
                 return;
             }
 
-            Titulo titulo = new Titulo(UUID.randomUUID().toString(), produto.getPreco(), false, cliente.getId(), "a receber");
+            Titulo titulo = new Titulo(UUID.randomUUID().toString(), produto.preco(), false, cliente.id(), "a receber");
             titulos.add(titulo);
             saveTitulos();
             System.out.println("Venda registrada. Título a receber gerado: " + titulo.getId());
@@ -148,7 +155,7 @@ public class Estoque {
         System.out.print("ID da Pessoa (tipo " + tipo + "): ");
         String id = scanner.nextLine();
         for (Pessoa p : pessoas) {
-            if (p.getId().equals(id) && p.getTipo() == tipo) {
+            if (p.id().equals(id) && p.tipo() == tipo) {
                 return p;
             }
         }
@@ -156,43 +163,46 @@ public class Estoque {
     }
 
     private void carregaProduto() throws IOException {
+        garantirArquivo(PRODUTOS_ARQUIVO);  // garantir arquivo
         File file = new File(PRODUTOS_ARQUIVO);
-        if (file.exists()) {
-            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    produtos.add(Produto.fromString(line));
-                }
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                produtos.add(Produto.fromString(line));
             }
         }
     }
 
     private void carregaTitulos() throws IOException {
+        garantirArquivo(TITULOS_ARQUIVO);
         File file = new File(TITULOS_ARQUIVO);
-        if (file.exists()) {
-            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    titulos.add(Titulo.fromString(line));
-                }
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                titulos.add(Titulo.fromString(line));
             }
         }
+
     }
 
     private void carregaPessoas() throws IOException {
+        garantirArquivo(PESSOAS_ARQUIVO);   // garante que existe
         File file = new File(PESSOAS_ARQUIVO);
-        if (file.exists()) {
-            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    pessoas.add(Pessoa.fromString(line));
-                }
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                pessoas.add(Pessoa.fromString(line));
             }
         }
+
     }
 
     private void saveProdutos() throws IOException {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(PRODUTOS_ARQUIVO))) {
+        garantirArquivo(PRODUTOS_ARQUIVO);  // garante que o arquivo exista
+
+        // FileWritter agora também recebe true
+        // isso para reescrever e nao recriar
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(PRODUTOS_ARQUIVO, true))) {
             for (Produto product : produtos) {
                 writer.write(product.toString());
                 writer.newLine();
@@ -201,7 +211,11 @@ public class Estoque {
     }
 
     private void saveTitulos() throws IOException {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(TITULOS_ARQUIVO))) {
+        garantirArquivo(TITULOS_ARQUIVO);   // garante que o arquivo exista
+
+        // FileWritter agora também recebe true
+        // isso para reescrever e nao recriar
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(TITULOS_ARQUIVO, true))) {
             for (Titulo title : titulos) {
                 writer.write(title.toString());
                 writer.newLine();
@@ -210,11 +224,23 @@ public class Estoque {
     }
 
     private void savePessoas() throws IOException {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(PESSOAS_ARQUIVO))) {
+        garantirArquivo(PESSOAS_ARQUIVO);   // garante que o arquivo exista
+
+        // FileWritter agora também recebe true
+        // isso para reescrever e nao recriar
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(PESSOAS_ARQUIVO, true))) {
             for (Pessoa pessoa : pessoas) {
                 writer.write(pessoa.toString());
                 writer.newLine();
             }
+        }
+    }
+
+    private void garantirArquivo(String path) throws IOException {
+        File file = new File(path);
+        if (!file.exists()) {
+            file.getParentFile().mkdirs();  // cria pastas
+            file.createNewFile();           // cria o arquivo
         }
     }
 }

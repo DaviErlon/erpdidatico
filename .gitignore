@@ -1,6 +1,7 @@
 .settings
 .classpath
 .project
-.HELP.md
 /target
 bin
+.out
+.idea
