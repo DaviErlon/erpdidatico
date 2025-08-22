@@ -3,6 +3,6 @@
 .project
 /target
 bin
-.out
+out
 .idea
 ERPDidatico.iml
