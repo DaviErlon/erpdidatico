@@ -1,8 +1,6 @@
 package com.example.erpserver.repository;
 
-import com.example.erpserver.models.Pessoa;
-import com.example.erpserver.models.Produto;
-import com.example.erpserver.models.Titulo;
+import com.example.erpserver.models.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
@@ -19,6 +17,8 @@ public class Repositorio {
     private static final String PRODUTOS_ARQUIVO = "data/produtos.json";
     private static final String TITULOS_ARQUIVO = "data/titulos.json";
     private static final String PESSOAS_ARQUIVO = "data/pessoas.json";
+    private static final String USUARIOS_ARQUIVO = "data/usuarios.json";
+    private static final String TOKENS_ARQUIVO = "data/tokens.json";
 
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -46,6 +46,12 @@ public class Repositorio {
 
     public synchronized void salvarProdutos(List<Produto> produtos) {
         salvarLista(PRODUTOS_ARQUIVO, produtos);
+    }
+
+
+    // -------------------- USUARIOS --------------------
+    public List<Usuario> carregarUsuarios() {
+        return lerLista(USUARIOS_ARQUIVO, new TypeReference<List<Usuario>>() {});
     }
 
     // -------------------- MÉTODOS AUXILIARES --------------------

@@ -22,37 +22,43 @@ public class TitulosController {
     // ------ END POINT ::::::::: TITULOS --------
     // ------- GET --------
 
-    @GetMapping("/titulos")
+    @GetMapping
     public List<Titulo> getTitulos(){
         return service.getTitulos();
     }
 
-    @GetMapping("/titulos/pagos")
+    @GetMapping("/pagos")
     public List<Titulo> getPagos(){
         return service.getTitulosPagos();
     }
 
-    @GetMapping("/titulos/abertos")
+    @GetMapping("/abertos")
     public List<Titulo> getAbertos(){
         return service.getTitulosEmAberto();
     }
 
-    @GetMapping("/titulos/{id}")
+    @GetMapping("/{id}")
     public Optional<Titulo> getById(@PathVariable String id){
         return service.getTituloById(id);
     }
 
     //------- POST --------
 
-    @PostMapping("/titulos")
+    @PostMapping
     public List<Titulo> addTitulos(@RequestBody @Valid List<TituloDTO> lista){
         return lista.stream().map(dto -> service.addTitulo(dto)).toList();
     }
 
     //------- REMOVE --------
 
-    @DeleteMapping("/titulos/{id}")
+    @DeleteMapping("/{id}")
     public Optional<Titulo> deleteTitulo(@PathVariable String id){
         return service.removeTitulo(id);
+    }
+
+    //------- PUT --------
+    @PutMapping("/{id}")
+    public Optional<Titulo> pagarTitulo(@Valid @PathVariable String id){
+        return service.efetuarPagamento(id);
     }
 }

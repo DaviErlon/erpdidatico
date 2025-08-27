@@ -42,16 +42,10 @@ public class ServicoRepositorio {
     }
 
     // ---------- Títulos ----------
-    public void efetuarPagamento(String tituloId) {
-        getTituloById(tituloId).ifPresentOrElse(
-                t -> {
-                    if (!t.isPago()) {
-                        t.setPago(true);
-                        logger.info("Título pago com sucesso: {}", t);
-                    }
-                },
-                () -> logger.warn("Título aberto não encontrado pelo ID: {}", tituloId)
-        );
+    public Optional<Titulo> efetuarPagamento(String tituloId) {
+        Optional<Titulo> t = getTituloById(tituloId);
+        t.ifPresent(titulo -> titulo.setPago(true));
+        return t;
     }
 
     public Titulo addTitulo(TituloDTO t) {
