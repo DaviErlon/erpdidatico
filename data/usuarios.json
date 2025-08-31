@@ -1,10 +1,5 @@
-[
-  {
-    "login": "admin1",
-    "senha": "admin"
-  },
-  {
-    "login": "admin2",
-    "senha": "admin"
-  }
-]
+[ {
+  "username" : "davi",
+  "senha" : "$2a$10$lH7mnjY4Esya.CYx8FiUQuKV2KSjFhjyvJAYFsND6q35gmwje7egW",
+  "role" : "USER"
+} ]

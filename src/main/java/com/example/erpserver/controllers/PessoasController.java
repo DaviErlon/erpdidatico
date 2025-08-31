@@ -2,7 +2,7 @@ package com.example.erpserver.controllers;
 
 import com.example.erpserver.models.Pessoa;
 import com.example.erpserver.models.PessoaDTO;
-import com.example.erpserver.services.ServicoRepositorio;
+import com.example.erpserver.services.ServicoPessoas;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
@@ -17,7 +17,7 @@ import java.util.Optional;
 public class PessoasController {
 
     @Autowired
-    private ServicoRepositorio service;
+    private ServicoPessoas service;
 
     // ------ END POINT ::::::::: PESSOAS --------
     @GetMapping
