@@ -1,60 +1,54 @@
 package com.example.erpserver.services;
 
-import com.example.erpserver.models.Usuario;
-import com.example.erpserver.repository.Repositorio;
+import com.example.erpserver.repository.AssinantesRepositorio;
+import com.example.erpserver.repository.MembrosRepositorio;
 import com.example.erpserver.security.JwtUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
 @Service
 public class ServicoLogin {
 
-    private static final Logger logger = LoggerFactory.getLogger(ServicoLogin.class);
-
-    private static final String USERNAME_ADMIN = "admin";
-    private static final String SENHA_ADMIN = "admin123";
-
+    private final AssinantesRepositorio assinantes;
+    private final MembrosRepositorio membros;
     private final JwtUtil jwtUtil;
-    private final Repositorio repositorio;
-    private final List<Usuario> usuarios;
     private final PasswordEncoder passwordEncoder;
 
-    public ServicoLogin(JwtUtil jwtUtil, Repositorio repositorio, PasswordEncoder passwordEncoder) {
+    public ServicoLogin(AssinantesRepositorio assinantes, MembrosRepositorio membros, JwtUtil jwtUtil, PasswordEncoder passwordEncoder) {
+        this.assinantes = assinantes;
+        this.membros = membros;
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = passwordEncoder;
-        this.repositorio = repositorio;
-        this.usuarios = repositorio.carregarUsuarios();
     }
 
-    // ---------- Persistência ----------
-    public void salvarJson() {
-        repositorio.salvarUsuarios(usuarios);
+    public Optional<String> autenticar(String email, String senha) {
+        return autenticarAssinante(email, senha)
+                .or(() -> autenticarMembro(email, senha));
     }
 
-    public Optional<String> autenticar(String username, String senha) {
-        // --- ADMIN FIXO ---
-        if (USERNAME_ADMIN.equals(username) && SENHA_ADMIN.equals(senha)) {
-            String token = jwtUtil.generateToken("admin", Set.of("ADMIN"));
-            return Optional.of(token);
-        }
+    // --- Métodos auxiliares ---
+    private Optional<String> autenticarAssinante(String email, String senha) {
+        return assinantes.findByEmail(email)
+                .filter(a -> passwordEncoder.matches(senha, a.getSenhaHash()))
+                .map(a -> jwtUtil.gerarToken(
+                        a.getEmail(),
+                        Set.of("ADMIN"),
+                        a.getId(),
+                        a.getId()
+                ));
+    }
 
-        // --- USUÁRIO COMUM ---
-        Optional<Usuario> userOpt = usuarios.stream()
-                .filter(u -> u.getUsername().equals(username) && passwordEncoder.matches(senha, u.getSenha()))
-                .findFirst();
-
-        if (userOpt.isPresent()) {
-            String token = jwtUtil.generateToken(username, Set.of("USER"));
-            return Optional.of(token);
-        }
-
-        // --- CREDENCIAIS INVÁLIDAS ---
-        return Optional.empty();
+    private Optional<String> autenticarMembro(String email, String senha) {
+        return membros.findByEmail(email)
+                .filter(m -> passwordEncoder.matches(senha, m.getSenhaHash()))
+                .map(m -> jwtUtil.gerarToken(
+                        m.getEmail(),
+                        Set.of("USER"),
+                        m.getId(),
+                        m.getAssinante().getId()
+                ));
     }
 }

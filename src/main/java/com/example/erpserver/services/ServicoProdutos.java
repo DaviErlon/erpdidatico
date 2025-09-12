@@ -1,80 +1,149 @@
 package com.example.erpserver.services;
 
-import com.example.erpserver.models.ID;
-import com.example.erpserver.models.Pessoa;
-import com.example.erpserver.models.Produto;
-import com.example.erpserver.models.ProdutoDTO;
-import com.example.erpserver.repository.Repositorio;
-import lombok.Getter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.example.erpserver.entities.Produto;
+import com.example.erpserver.DTOs.ProdutoDTO;
+import com.example.erpserver.repository.AssinantesRepositorio;
+import com.example.erpserver.repository.ProdutosRepositorio;
+import com.example.erpserver.security.JwtUtil;
+import com.example.erpserver.specifications.ProdutoSpecifications;
+import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Collectors;
-
 
 @Service
-@Getter
 public class ServicoProdutos {
 
-    private static final Logger logger = LoggerFactory.getLogger(ServicoProdutos.class);
+    private final AssinantesRepositorio assinantesRepositorio;
+    private final ProdutosRepositorio repositorio;
+    private final JwtUtil jwtUtil;
 
-    private final List<Produto> produtos;
-    private final Repositorio repositorio;
-
-    public ServicoProdutos(Repositorio repositorio) {
-        this.produtos = new CopyOnWriteArrayList<>(repositorio.carregarProdutos());
+    public ServicoProdutos(
+            ProdutosRepositorio repositorio,
+            JwtUtil jwtUtil,
+            AssinantesRepositorio assinantesRepositorio
+    ) {
         this.repositorio = repositorio;
+        this.jwtUtil = jwtUtil;
+        this.assinantesRepositorio = assinantesRepositorio;
     }
 
-    // ---------- Persistência ----------
-    public void salvarJson() {
-        repositorio.salvarProdutos(produtos);
-    }
-    // ---------- Produtos ----------
-    public Produto addProduto(ProdutoDTO p) {
-        Produto produto = new Produto(
-                generateId(produtos),
-                p.getNome(),
-                p.getPreco(),
-                p.getEstoque()
-        );
-        produtos.add(produto);
-        logger.info("Produto adicionado com sucesso: {}", produto);
-        return produto;
+    // ---------- Adicionar Produto ----------
+    @Transactional
+    public Optional<Produto> addProduto(ProdutoDTO dto, String token) {
+        Long assinanteId = jwtUtil.extrairAdminId(token);
+
+        return assinantesRepositorio.findById(assinanteId)
+                .map(assinante -> {
+                    Produto produto = new Produto();
+                    produto.setNome(dto.getNome());
+                    produto.setPreco(dto.getPreco());
+                    produto.setEstoqueDisponivel(dto.getQuantidade());
+                    produto.setEstoquePendente(0);
+                    produto.setEstoqueReservado(0);
+                    produto.setAssinante(assinante);
+
+                    return repositorio.save(produto);
+                });
     }
 
-    public List<Produto> getProdutosForaDeEstoque() {
-        return produtos.stream().filter(pr -> pr.getEstoque() == 0).collect(Collectors.toList());
+    // ---------- Atualizar Produto ----------
+    @Transactional
+    public Optional<Produto> atualizarPorId(String token, Long produtoId, String nome, Double preco) {
+        Long assinanteId = jwtUtil.extrairAdminId(token);
+
+        return repositorio.findByAssinanteIdAndId(assinanteId, produtoId)
+                .map(produto -> {
+                    produto.setNome(nome);
+                    produto.setPreco(preco);
+                    return repositorio.save(produto);
+                });
     }
 
-    public Optional<Produto> getProdutoById(String id) {
-        return produtos.stream().filter(pr -> pr.getId().equals(id)).findFirst();
+    // ---------- Movimentação de Estoque ----------
+    @Transactional
+    public Optional<Produto> addEstoquePendente(String token, Long produtoId, int quantidade) {
+        Long assinanteId = jwtUtil.extrairAdminId(token);
+
+        return repositorio.findByAssinanteIdAndId(assinanteId, produtoId)
+                .map(produto -> {
+                    produto.setEstoquePendente(produto.getEstoquePendente() + quantidade);
+                    return repositorio.save(produto);
+                });
     }
 
-    public Optional<Produto> removeProduto(String id) {
-        Optional<Produto> pr = getProdutoById(id);
-        pr.ifPresent(produtos::remove);
-        if (pr.isEmpty()) {
-            logger.warn("Não existe produto com esse ID: {}", id);
-        } else {
-            logger.info("Produto removido com sucesso: {}", pr.get());
-        }
-        return pr;
+    @Transactional
+    public Optional<Produto> quitarEstoquePendente(String token, Long produtoId, int quantidade) {
+        Long assinanteId = jwtUtil.extrairAdminId(token);
+
+        return repositorio.findByAssinanteIdAndId(assinanteId, produtoId)
+                .filter(produto -> produto.getEstoquePendente() >= quantidade)
+                .map(produto -> {
+                    produto.setEstoquePendente(produto.getEstoquePendente() - quantidade);
+                    produto.setEstoqueDisponivel(produto.getEstoqueDisponivel() + quantidade);
+                    return repositorio.save(produto);
+                });
     }
 
-    // ---------- Auxiliares ----------
-    private <T extends ID> String generateId(List<T> models) {
-        Set<String> existingIds = models.stream().map(ID::getId).collect(Collectors.toSet());
-        String id;
-        do {
-            id = UUID.randomUUID().toString();
-        } while (existingIds.contains(id));
-        return id;
+    @Transactional
+    public Optional<Produto> addEstoqueReservado(String token, Long produtoId, int quantidade) {
+        Long assinanteId = jwtUtil.extrairAdminId(token);
+
+        return repositorio.findByAssinanteIdAndId(assinanteId, produtoId)
+                .filter(produto -> produto.getEstoqueDisponivel() >= quantidade)
+                .map(produto -> {
+                    produto.setEstoqueReservado(produto.getEstoqueReservado() + quantidade);
+                    produto.setEstoqueDisponivel(produto.getEstoqueDisponivel() - quantidade);
+
+                    return repositorio.save(produto);
+                });
+    }
+
+    @Transactional
+    public Optional<Produto> quitarEstoqueReservado(String token, Long produtoId, int quantidade) {
+        Long assinanteId = jwtUtil.extrairAdminId(token);
+
+        return repositorio.findByAssinanteIdAndId(assinanteId, produtoId)
+                .filter(produto -> produto.getEstoqueReservado() >= quantidade)
+                .map(produto -> {
+                    produto.setEstoqueReservado(produto.getEstoqueReservado() - quantidade);
+                    return repositorio.save(produto);
+                });
+    }
+
+    // ---------- Buscar Produtos (Paginação) ----------
+    public Page<Produto> buscarProdutos(
+            String token,
+            String nome,
+            Boolean semEstoque,
+            Boolean comEstoquePendente,
+            Boolean comEstoqueReservado,
+            int pagina,
+            int tamanho
+    ) {
+
+        Long assinanteId = jwtUtil.extrairAdminId(token);
+        Pageable pageable = PageRequest.of(pagina, tamanho);
+        Specification<Produto> spec = ProdutoSpecifications.comFiltros(assinanteId, nome, semEstoque, comEstoquePendente, comEstoqueReservado);
+
+        return repositorio.findAll(spec, pageable);
+    }
+
+
+    // ---------- Remover Produto ----------
+    @Transactional
+    public Optional<Produto> removerPorId(String token, Long produtoId) {
+        Long assinanteId = jwtUtil.extrairAdminId(token);
+
+        return repositorio.findByAssinanteIdAndId(assinanteId, produtoId)
+                .map(produto -> {
+                    repositorio.delete(produto);
+                    return produto;
+                });
     }
 }
+

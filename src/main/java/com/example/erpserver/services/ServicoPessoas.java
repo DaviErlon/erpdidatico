@@ -1,73 +1,94 @@
 package com.example.erpserver.services;
 
-import com.example.erpserver.models.Pessoa;
-import com.example.erpserver.models.PessoaDTO;
-import com.example.erpserver.repository.Repositorio;
-import lombok.Getter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.example.erpserver.entities.Pessoa;
+import com.example.erpserver.DTOs.PessoaDTO;
+import com.example.erpserver.repository.AssinantesRepositorio;
+import com.example.erpserver.repository.PessoasRepositorio;
+import com.example.erpserver.security.JwtUtil;
+import com.example.erpserver.specifications.PessoaSpecifications;
+import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Collectors;
 
 @Service
-@Getter
 public class ServicoPessoas {
 
-    private static final Logger logger = LoggerFactory.getLogger(ServicoPessoas.class);
+    private final AssinantesRepositorio assinantesRepositorio;
+    private final PessoasRepositorio repositorio;
+    private final JwtUtil jwtUtil;
 
-    private final List<Pessoa> pessoas;
-    private final Repositorio repositorio;
-
-    public ServicoPessoas(Repositorio repositorio) {
-        this.pessoas = new CopyOnWriteArrayList<>(repositorio.carregarPessoas());
+    public ServicoPessoas(
+            PessoasRepositorio repositorio,
+            JwtUtil jwtUtil,
+            AssinantesRepositorio assinantesRepositorio
+    ) {
         this.repositorio = repositorio;
+        this.jwtUtil = jwtUtil;
+        this.assinantesRepositorio = assinantesRepositorio;
     }
 
-    // ---------- Persistência ----------
-    public void salvarJson() {
-        repositorio.salvarPessoas(pessoas);
+    // ---------- Adicionar Pessoa ----------
+    @Transactional
+    public Optional<Pessoa> addPessoa(PessoaDTO dto, String token) {
+        Long assinanteId = jwtUtil.extrairAdminId(token);
+
+        return assinantesRepositorio.findById(assinanteId)
+                .map(assinante -> {
+                    Pessoa pessoa = new Pessoa();
+                    pessoa.setCpf(dto.getCpf());
+                    pessoa.setFornecedor(dto.isFornecedor());
+                    pessoa.setNome(dto.getNome());
+                    pessoa.setAssinante(assinante);
+                    pessoa.setContato(dto.getContato());
+                    return repositorio.save(pessoa);
+                });
     }
 
-    // ---------- Pessoas ----------
-    public Pessoa addPessoa(PessoaDTO p) {
-        Pessoa pessoa = new Pessoa(
-                p.getId(),
-                p.getTipo(),
-                p.getNome()
-        );
-        pessoas.add(pessoa);
-        logger.info("Pessoa adicionada com sucesso: {}", pessoa);
-        return pessoa;
+    // ---------- Atualizar Pessoa ----------
+    @Transactional
+    public Optional<Pessoa> atualizarPessoa(String token, Long id, PessoaDTO dto) {
+        Long assinanteId = jwtUtil.extrairAdminId(token);
+
+        return repositorio.findByAssinanteIdAndId(assinanteId, id)
+                .map(pessoa -> {
+                    pessoa.setNome(dto.getNome());
+                    pessoa.setFornecedor(dto.isFornecedor());
+                    pessoa.setContato(dto.getContato());
+                    return repositorio.save(pessoa);
+                });
     }
 
-    public List<Pessoa> getClientes() {
-        return pessoas.stream().filter(p -> p.getTipo() == 0).collect(Collectors.toList());
+    // ---------- Buscar Pessoas (Paginação) ----------
+    public Page<Pessoa> buscarPessoas(
+            String token,
+            String cpf,
+            String nome,
+            Boolean fornecedor,
+            int pagina,
+            int tamanho
+    ) {
+        Long assinanteId = jwtUtil.extrairAdminId(token);
+        Pageable pageable = PageRequest.of(pagina, tamanho);
+        Specification<Pessoa> spec = PessoaSpecifications.comFiltros(assinanteId, cpf, nome, fornecedor);
+
+        return repositorio.findAll(spec, pageable);
     }
 
-    public List<Pessoa> getFuncionarios() {
-        return pessoas.stream().filter(p -> p.getTipo() == 1).collect(Collectors.toList());
-    }
+    // ---------- Remover Pessoa ----------
+    @Transactional
+    public Optional<Pessoa> removerPorId(String token, Long id) {
+        Long assinanteId = jwtUtil.extrairAdminId(token);
 
-    public List<Pessoa> getFornecedores() {
-        return pessoas.stream().filter(p -> p.getTipo() == 2).collect(Collectors.toList());
-    }
-
-    public Optional<Pessoa> getPessoaById(String id) {
-        return pessoas.stream().filter(p -> p.getId().equals(id)).findFirst();
-    }
-
-    public Optional<Pessoa> removePessoa(String id) {
-        Optional<Pessoa> p = getPessoaById(id);
-        p.ifPresent(pessoas::remove);
-        if (p.isEmpty()) {
-            logger.warn("Não existe pessoa com esse ID: {}", id);
-        } else {
-            logger.info("Pessoa removida com sucesso: {}", p.get());
-        }
-        return p;
+        return repositorio.findByAssinanteIdAndId(assinanteId, id)
+                .map(pessoa -> {
+                    repositorio.deleteByAssinanteIdAndId(assinanteId, id);
+                    return pessoa;
+                });
     }
 }
+

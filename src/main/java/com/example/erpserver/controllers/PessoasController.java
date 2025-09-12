@@ -1,64 +1,79 @@
 package com.example.erpserver.controllers;
 
-import com.example.erpserver.models.Pessoa;
-import com.example.erpserver.models.PessoaDTO;
+import com.example.erpserver.entities.Pessoa;
+import com.example.erpserver.DTOs.PessoaDTO;
 import com.example.erpserver.services.ServicoPessoas;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/pessoas")
 @Validated
 public class PessoasController {
 
-    @Autowired
-    private ServicoPessoas service;
+    private ServicoPessoas servico;
 
-    // ------ END POINT ::::::::: PESSOAS --------
+    public PessoasController(ServicoPessoas servico) {
+        this.servico = servico;
+    }
+
+    // ------ END POINT : GET --------
     @GetMapping
-    public List<Pessoa> getPessoas(){
-        return service.getPessoas();
+    public Page<Pessoa> buscarPessoas(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestParam(required = false) String cpf,
+            @RequestParam(required = false) String nome,
+            @RequestParam(required = false) Boolean fornecedor,
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "10") int tamanho
+    ) {
+        String token = authHeader.replace("Bearer ", "");
+        return servico.buscarPessoas(token, cpf, nome, fornecedor, pagina, tamanho);
     }
 
-    @GetMapping("/clientes")
-    public List<Pessoa> getClientes(){
-        return service.getClientes();
-    }
-
-    @GetMapping("/funcionarios")
-    public List<Pessoa> getFuncionarios(){
-        return service.getFuncionarios();
-    }
-
-    @GetMapping("/fornecedores")
-    public List<Pessoa> getFornecedores(){
-        return service.getFornecedores();
-    }
-
-    @GetMapping("/{id}")
-    public Optional<Pessoa> getPessoa(@PathVariable String id){
-        return service.getPessoaById(id);
-    }
-    //------- POST --------
+    // ------ END POINT : POST --------
 
     @PostMapping
-    public List<Pessoa> addPessoas(@RequestBody @Valid List<PessoaDTO> lista) {
-        return lista.stream()
-                .filter(dto -> service.getPessoaById(dto.getId()).isEmpty())
-                .map(dto -> service.addPessoa(dto))
-                .toList();
+    public ResponseEntity<Pessoa> postPessoa(
+            @RequestHeader("Authorization") String authHeader,
+            @Valid @RequestBody PessoaDTO dto
+    ) {
+        String token = authHeader.replace("Bearer ", "");
+
+        return servico.addPessoa(dto, token)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.badRequest().build());
     }
 
-    //------- REMOVE --------
+    // ------ END POINT : PUT --------
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Pessoa> alterarPessoa(
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String authHeader,
+            @Valid @RequestBody PessoaDTO dto
+    ) {
+        String token = authHeader.replace("Bearer ", "");
+
+        return servico.atualizarPessoa(token, id, dto)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.badRequest().build());
+    }
+
+    // ------ END POINT : REMOVE --------
 
     @DeleteMapping("/{id}")
-    public Optional<Pessoa> deletePessoa(@PathVariable String id){
-        return service.removePessoa(id);
-    }
+    public ResponseEntity<Pessoa> deletarPessoa(
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        String token = authHeader.replace("Bearer ", "");
 
+        return servico.removerPorId(token, id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.badRequest().build());
+    }
 }

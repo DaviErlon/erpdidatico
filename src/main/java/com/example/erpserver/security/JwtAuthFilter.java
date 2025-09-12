@@ -28,22 +28,25 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
 
         final String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
+
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            final String token = authHeader.substring(7);
+
+            try {
+                if (jwtUtil.tokenValido(token)) {
+                    String email = jwtUtil.extrairEmail(token);
+                    var roles = jwtUtil.extrairRoles(token).stream()
+                            .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
+                            .collect(Collectors.toList());
+
+                    var authToken = new UsernamePasswordAuthenticationToken(email, null, roles);
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
+            } catch (Exception e) {
+                SecurityContextHolder.clearContext();
+            }
         }
-
-        final String token = authHeader.substring(7);
-        if (jwtUtil.isTokenValid(token)) {
-            String username = jwtUtil.extractUsername(token);
-            var roles = jwtUtil.extractRoles(token).stream()
-                    .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
-                    .collect(Collectors.toList());
-
-            var authToken = new UsernamePasswordAuthenticationToken(username, null, roles);
-            SecurityContextHolder.getContext().setAuthentication(authToken);
-        }
-
         filterChain.doFilter(request, response);
     }
 }
+

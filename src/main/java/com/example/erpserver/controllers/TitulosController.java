@@ -1,64 +1,95 @@
 package com.example.erpserver.controllers;
 
-import com.example.erpserver.models.Titulo;
-import com.example.erpserver.models.TituloDTO;
+import com.example.erpserver.entities.Titulo;
+import com.example.erpserver.DTOs.TituloDTO;
 import com.example.erpserver.services.ServicoTitulos;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Optional;
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/titulos")
 @Validated
 public class TitulosController {
 
-    @Autowired
-    private ServicoTitulos service;
+    private final ServicoTitulos servico;
 
-    // ------ END POINT ::::::::: TITULOS --------
-    // ------- GET --------
-
+    public TitulosController(ServicoTitulos servico){
+        this.servico = servico;
+    }
+    // ------ END POINT : GET --------
     @GetMapping
-    public List<Titulo> getTitulos(){
-        return service.getTitulos();
-    }
+    public Page<Titulo> buscarTitulo(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestParam(required = false) String cpf,
+            @RequestParam(required = false) String nome,
+            @RequestParam(required = false) LocalDateTime inicio,
+            @RequestParam(required = false) LocalDateTime fim,
+            @RequestParam(required = false) Boolean pago,
+            @RequestParam(required = false) Boolean aReceber,
+            @RequestParam(required = false) Boolean aPagar,
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "10") int tamanho
 
-    @GetMapping("/pagos")
-    public List<Titulo> getPagos(){
-        return service.getTitulosPagos();
-    }
+    ){
+        String token = authHeader.replace("Bearer ", "");
 
-    @GetMapping("/abertos")
-    public List<Titulo> getAbertos(){
-        return service.getTitulosEmAberto();
-    }
+        return servico.buscarTitulos(token, cpf, nome, inicio, fim, pago, aReceber, aPagar, pagina, tamanho);
 
-    @GetMapping("/{id}")
-    public Optional<Titulo> getById(@PathVariable String id){
-        return service.getTituloById(id);
     }
-
     //------- POST --------
-
     @PostMapping
-    public List<Titulo> addTitulos(@RequestBody @Valid List<TituloDTO> lista){
-        return lista.stream().map(dto -> service.addTitulo(dto)).toList();
+    public ResponseEntity<Titulo> postTitulo(
+            @RequestHeader("Authorization") String authHeader,
+            @Valid @RequestBody TituloDTO dto
+    ) {
+        String token = authHeader.replace("Bearer ", "");
+
+        return servico.criarTitulo(token, dto)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.badRequest().build());
     }
+
 
     //------- REMOVE --------
-
     @DeleteMapping("/{id}")
-    public Optional<Titulo> deleteTitulo(@PathVariable String id){
-        return service.removeTitulo(id);
+    public ResponseEntity<Titulo> deletarTitulo(
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        String token = authHeader.replace("Bearer ", "");
+        return servico.removerTitulo(token, id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.badRequest().build());
     }
 
     //------- PUT --------
     @PutMapping("/{id}")
-    public Optional<Titulo> pagarTitulo(@Valid @PathVariable String id){
-        return service.efetuarPagamento(id);
+    public ResponseEntity<Titulo> alterarTitulo(
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String authHeader,
+            @Valid @RequestBody TituloDTO dto
+    ) {
+        String token = authHeader.replace("Bearer ", "");
+
+        return servico.editarTitulo(token, id, dto)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.badRequest().build());
+    }
+
+    @PutMapping("/quitar/{id}")
+    public ResponseEntity<Titulo> quitarTitulo(
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        String token = authHeader.replace("Bearer ", "");
+
+        return servico.quitarTitulo(token, id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.badRequest().build());
     }
 }

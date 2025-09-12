@@ -1,0 +1,35 @@
+package com.example.erpserver.controllers;
+
+import com.example.erpserver.DTOs.CadastroDTO;
+import com.example.erpserver.DTOs.CadastroMembroDTO;
+import com.example.erpserver.entities.Assinante;
+import com.example.erpserver.services.ServicoCadastro;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/cadastro")
+@Validated
+public class CadastroController {
+
+    private final ServicoCadastro servico;
+
+    public CadastroController(ServicoCadastro servico){
+        this.servico = servico;
+    }
+
+    //------- POST --------
+    @PostMapping
+    public ResponseEntity<Assinante> addAssinante(
+            @RequestBody @Valid CadastroDTO dto
+    ){
+        return servico.addAssinante(dto)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.badRequest().build());
+    }
+}

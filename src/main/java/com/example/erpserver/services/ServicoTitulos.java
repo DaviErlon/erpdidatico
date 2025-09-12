@@ -1,83 +1,254 @@
 package com.example.erpserver.services;
 
-import com.example.erpserver.models.ID;
-import com.example.erpserver.models.Titulo;
-import com.example.erpserver.models.TituloDTO;
-import com.example.erpserver.repository.Repositorio;
-import lombok.Getter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.example.erpserver.DTOs.ItemProdutoDTO;
+import com.example.erpserver.DTOs.TituloDTO;
+import com.example.erpserver.entities.*;
+import com.example.erpserver.repository.AssinantesRepositorio;
+import com.example.erpserver.repository.PessoasRepositorio;
+import com.example.erpserver.repository.ProdutosRepositorio;
+import com.example.erpserver.repository.ProdutosDosTitulosRepositorio;
+import com.example.erpserver.repository.TitulosRepositorio;
+import com.example.erpserver.security.JwtUtil;
+import com.example.erpserver.specifications.TituloSpecifications;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Collectors;
 
 @Service
-@Getter
 public class ServicoTitulos {
 
-    private static final Logger logger = LoggerFactory.getLogger(ServicoTitulos.class);
+    private final TitulosRepositorio repositorio;
+    private final ProdutosDosTitulosRepositorio produtosDosTitulos;
+    private final ProdutosRepositorio produtosRepositorio;
+    private final PessoasRepositorio pessoasRepositorio;
+    private final AssinantesRepositorio assinantesRepositorio;
+    private final JwtUtil jwtUtil;
+    private final ServicoProdutos servicoProdutos;
 
-    private final List<Titulo> titulos;
-    private final Repositorio repositorio;
-
-    public ServicoTitulos(Repositorio repositorio) {
-        this.titulos = new CopyOnWriteArrayList<>(repositorio.carregarTitulos());
+    public ServicoTitulos(
+            TitulosRepositorio repositorio,
+            ProdutosDosTitulosRepositorio produtosDosTitulos,
+            ProdutosRepositorio produtosRepositorio,
+            PessoasRepositorio pessoasRepositorio,
+            AssinantesRepositorio assinantesRepositorio,
+            ServicoProdutos servicoProdutos,
+            JwtUtil jwtUtil
+    ) {
         this.repositorio = repositorio;
+        this.produtosDosTitulos = produtosDosTitulos;
+        this.produtosRepositorio = produtosRepositorio;
+        this.pessoasRepositorio = pessoasRepositorio;
+        this.assinantesRepositorio = assinantesRepositorio;
+        this.servicoProdutos = servicoProdutos;
+        this.jwtUtil = jwtUtil;
     }
 
-    // ---------- Persistência ----------
-    public void salvarJson() {
-        repositorio.salvarTitulos(titulos);
-    }
-    // ---------- Títulos ----------
-    public Optional<Titulo> efetuarPagamento(String tituloId) {
-        Optional<Titulo> t = getTituloById(tituloId);
-        t.ifPresent(titulo -> titulo.setPago(true));
-        return t;
-    }
+    // ---------- Criar Título ----------
+    @Transactional
+    public Optional<Titulo> criarTitulo(String token, TituloDTO dto) {
+        Long assinanteId = jwtUtil.extrairAdminId(token);
 
-    public Titulo addTitulo(TituloDTO t) {
-        String id = generateId(titulos);
-        Titulo titulo = new Titulo(id, t.getValor(), t.getCpf(), false, t.isPagaroureceber());
-        titulos.add(titulo);
-        logger.info("Título adicionado com sucesso: {}", titulo);
-        return titulo;
-    }
+        Assinante assinante = assinantesRepositorio.findById(assinanteId).orElse(null);
+        Pessoa pessoa = pessoasRepositorio.findByAssinanteIdAndId(assinanteId, dto.getId()).orElse(null);
 
-    public List<Titulo> getTitulosPagos() {
-        return titulos.stream().filter(Titulo::isPago).collect(Collectors.toList());
-    }
+        if (assinante == null || pessoa == null) return Optional.empty();
 
-    public List<Titulo> getTitulosEmAberto() {
-        return titulos.stream().filter(t -> !t.isPago()).collect(Collectors.toList());
-    }
+        double valorTotal = 0.0;
+        List<ProdutosDosTitulos> listaProdutosTitulo = new ArrayList<>();
 
-    public Optional<Titulo> getTituloById(String id) {
-        return titulos.stream().filter(t -> t.getId().equals(id)).findFirst();
-    }
+        for (ItemProdutoDTO item : dto.getProdutos()) {
+            Produto produto = produtosRepositorio.findByAssinanteIdAndId(assinanteId, item.getProdutoId()).orElse(null);
+            if (produto == null) return Optional.empty();
 
-    public Optional<Titulo> removeTitulo(String id) {
-        Optional<Titulo> t = getTituloById(id);
-        t.ifPresent(titulos::remove);
-        if (t.isEmpty()) {
-            logger.warn("Não existe título com esse ID: {}", id);
-        } else {
-            logger.info("Título removido com sucesso: {}", t.get());
+            if (!pessoa.isFornecedor() && produto.getEstoqueDisponivel() < item.getQuantidade()) {
+                return Optional.empty();
+            }
+
+            ProdutosDosTitulos pdt = new ProdutosDosTitulos();
+            pdt.setProduto(produto);
+            pdt.setQuantidadeProduto(item.getQuantidade());
+            listaProdutosTitulo.add(pdt);
+
+            double subtotal = produto.getPreco() * item.getQuantidade();
+            valorTotal += pessoa.isFornecedor() ? -subtotal : subtotal;
         }
-        return t;
+
+        Titulo titulo = new Titulo();
+        titulo.setAssinante(assinante);
+        titulo.setPessoa(pessoa);
+        titulo.setValor(valorTotal);
+        titulo = repositorio.save(titulo);
+
+        // Associar produtos ao título
+        for (ProdutosDosTitulos pdt : listaProdutosTitulo) {
+            pdt.setTitulo(titulo);
+            if (pessoa.isFornecedor()) {
+                servicoProdutos.addEstoquePendente(token, pdt.getProduto().getId(), pdt.getQuantidadeProduto());
+            } else {
+                servicoProdutos.addEstoqueReservado(token, pdt.getProduto().getId(), pdt.getQuantidadeProduto());
+            }
+        }
+        produtosDosTitulos.saveAll(listaProdutosTitulo);
+
+        return Optional.of(titulo);
     }
-    // ---------- Auxiliares ----------
-    private <T extends ID> String generateId(List<T> models) {
-        Set<String> existingIds = models.stream().map(ID::getId).collect(Collectors.toSet());
-        String id;
-        do {
-            id = UUID.randomUUID().toString();
-        } while (existingIds.contains(id));
-        return id;
+
+    // ---------- Remover Título ----------
+    @Transactional
+    public Optional<Titulo> removerTitulo(String token, Long tituloId) {
+        Long assinanteId = jwtUtil.extrairAdminId(token);
+
+        return repositorio.findByAssinanteIdAndId(assinanteId, tituloId)
+                .map(titulo -> {
+
+                    if (!titulo.isPago()) {
+                        List<ProdutosDosTitulos> itens = produtosDosTitulos.findByTituloId(titulo.getId());
+
+                        for (ProdutosDosTitulos item : itens) {
+                            Produto produto = item.getProduto();
+                            int quantidade = item.getQuantidadeProduto();
+
+                            if (titulo.getPessoa().isFornecedor()) {
+                                produto.setEstoquePendente(produto.getEstoquePendente() - quantidade);
+                            } else {
+                                produto.setEstoqueReservado(produto.getEstoqueReservado() - quantidade);
+                                produto.setEstoqueDisponivel(produto.getEstoqueDisponivel() + quantidade);
+                            }
+
+                            produtosRepositorio.save(produto);
+                        }
+                    }
+
+                    repositorio.delete(titulo);
+                    return titulo;
+                });
     }
+
+    // ---------- Marcar como Pago ----------
+    @Transactional
+    public Optional<Titulo> quitarTitulo(String token, Long tituloId) {
+        Long assinanteId = jwtUtil.extrairAdminId(token);
+
+        return repositorio.findByAssinanteIdAndId(assinanteId, tituloId)
+                .filter(titulo -> !titulo.isPago())
+                .map(titulo -> {
+
+                    List<ProdutosDosTitulos> itens = produtosDosTitulos.findByTituloId(titulo.getId());
+
+                    for (ProdutosDosTitulos item : itens) {
+                        Produto produto = item.getProduto();
+                        int quantidade = item.getQuantidadeProduto();
+
+                        if (titulo.getPessoa().isFornecedor()) {
+                            servicoProdutos.quitarEstoquePendente(token, produto.getId(), quantidade);
+                        } else {
+                            servicoProdutos.quitarEstoqueReservado(token, produto.getId(), quantidade);
+                        }
+                    }
+
+                    titulo.setPago(true);
+                    return repositorio.save(titulo);
+                });
+    }
+
+
+    // ---------- Editar ----------
+    @Transactional
+    public Optional<Titulo> editarTitulo(String token, Long tituloId, TituloDTO dto) {
+        Long assinanteId = jwtUtil.extrairAdminId(token);
+
+        Optional<Titulo> tituloOpt = repositorio.findByAssinanteIdAndId(assinanteId, tituloId)
+                .filter(titulo -> !titulo.isPago());
+        if (tituloOpt.isEmpty() ) return Optional.empty();
+        Titulo titulo = tituloOpt.get();
+
+        Optional<Pessoa> pessoaOpt = pessoasRepositorio.findByAssinanteIdAndId(assinanteId, dto.getId());
+        if (pessoaOpt.isEmpty()) return Optional.empty();
+        Pessoa pessoa = pessoaOpt.get();
+
+        for (ItemProdutoDTO item : dto.getProdutos()) {
+            Optional<Produto> produtoOpt = produtosRepositorio.findByAssinanteIdAndId(assinanteId, item.getProdutoId());
+            if (produtoOpt.isEmpty()) return Optional.empty();
+            Produto produto = produtoOpt.get();
+            if (!pessoa.isFornecedor() && produto.getEstoqueDisponivel() < item.getQuantidade()) {
+                return Optional.empty();
+            }
+        }
+
+        List<ProdutosDosTitulos> produtosAntigos = produtosDosTitulos.findByTituloId(titulo.getId());
+        for (ProdutosDosTitulos item : produtosAntigos) {
+            Produto produto = item.getProduto();
+            int quantidade = item.getQuantidadeProduto();
+
+            if (titulo.getPessoa().isFornecedor()) {
+                servicoProdutos.quitarEstoquePendente(token, produto.getId(), quantidade);
+            } else {
+                servicoProdutos.quitarEstoqueReservado(token, produto.getId(), quantidade);
+                produto.setEstoqueDisponivel(produto.getEstoqueDisponivel() + quantidade);
+                produtosRepositorio.save(produto);
+            }
+        }
+        produtosDosTitulos.deleteByTitulo(titulo);
+
+        titulo.setPessoa(pessoa);
+
+        double valorTotal = 0.0;
+        List<ProdutosDosTitulos> listaProdutosTitulo = new ArrayList<>();
+        for (ItemProdutoDTO item : dto.getProdutos()) {
+            Produto produto = produtosRepositorio.findByAssinanteIdAndId(assinanteId, item.getProdutoId()).get();
+
+            ProdutosDosTitulos pdt = new ProdutosDosTitulos();
+            pdt.setTitulo(titulo);
+            pdt.setProduto(produto);
+            pdt.setQuantidadeProduto(item.getQuantidade());
+            listaProdutosTitulo.add(pdt);
+
+            double subtotal = produto.getPreco() * item.getQuantidade();
+            if (pessoa.isFornecedor()) {
+                servicoProdutos.addEstoquePendente(token, produto.getId(), item.getQuantidade());
+                valorTotal -= subtotal;
+            } else {
+                servicoProdutos.addEstoqueReservado(token, produto.getId(), item.getQuantidade());
+                valorTotal += subtotal;
+            }
+        }
+
+        produtosDosTitulos.saveAll(listaProdutosTitulo);
+        titulo.setValor(valorTotal);
+
+        return Optional.of(repositorio.save(titulo));
+    }
+
+
+
+    // ---------- Buscar Titulos (Paginação) ----------
+    public Page<Titulo> buscarTitulos(
+            String token,
+            String cpf,
+            String nome,
+            LocalDateTime inicio,
+            LocalDateTime fim,
+            Boolean pago,
+            Boolean aReceber,
+            Boolean aPagar,
+            int pagina,
+            int tamanho) {
+
+        Long assinanteId = jwtUtil.extrairAdminId(token);
+        Pageable pageable = PageRequest.of(pagina, tamanho);
+        Specification<Titulo> spec = TituloSpecifications.comFiltros(assinanteId, cpf, nome, inicio, fim, pago, aReceber, aPagar);
+
+        return repositorio.findAll(spec, pageable);
+    }
+
 }
+

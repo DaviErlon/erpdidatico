@@ -1,4 +1,3 @@
-
 package com.example.erpserver.security;
 
 import io.jsonwebtoken.*;
@@ -27,26 +26,46 @@ public class JwtUtil {
         SECRET_KEY = Keys.hmacShaKeyFor(secretString.getBytes());
     }
 
-    public String generateToken(String username, Set<String> roles) {
-        return Jwts.builder()
+    // -------------------- Geração do token --------------------
+    public String gerarToken(String username, Set<String> roles, Long userId, Long adminId) {
+        JwtBuilder builder = Jwts.builder()
                 .setSubject(username)
                 .claim("roles", String.join(",", roles))
+                .claim("userId", userId); // id do usuário
+
+        // Se for membro, adiciona id do admin
+        if (adminId != null) {
+            builder.claim("adminId", adminId);
+        }
+
+        return builder
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(SECRET_KEY, SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    public String extractUsername(String token) {
+    // -------------------- Extração de dados --------------------
+    public String extrairEmail(String token) {
         return parseToken(token).getBody().getSubject();
     }
 
-    public Set<String> extractRoles(String token) {
+    public Set<String> extrairRoles(String token) {
         String rolesString = (String) parseToken(token).getBody().get("roles");
         return Set.of(rolesString.split(","));
     }
 
-    public boolean isTokenValid(String token) {
+    public Long extrairUserId(String token) {
+        return ((Number) parseToken(token).getBody().get("userId")).longValue();
+    }
+
+    public Long extrairAdminId(String token) {
+        Object adminId = parseToken(token).getBody().get("adminId");
+        return adminId != null ? ((Number) adminId).longValue() : null;
+    }
+
+    // -------------------- Validação --------------------
+    public boolean tokenValido(String token) {
         try {
             parseToken(token);
             return true;
@@ -55,6 +74,7 @@ public class JwtUtil {
         }
     }
 
+    // -------------------- Parser --------------------
     private Jws<Claims> parseToken(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(SECRET_KEY)

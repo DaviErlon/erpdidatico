@@ -1,52 +1,80 @@
 package com.example.erpserver.controllers;
 
-import com.example.erpserver.models.*;
+import com.example.erpserver.DTOs.ProdutoDTO;
+import com.example.erpserver.entities.Produto;
 import com.example.erpserver.services.ServicoProdutos;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/produtos")
 @Validated
 public class ProdutosController {
 
-    @Autowired
-    private ServicoProdutos service;
+    private final ServicoProdutos servico;
 
-    // ------ END POINT ::::::::: PRODUTOS --------
-        //------- GET --------
+    public ProdutosController(ServicoProdutos servico) {
+        this.servico = servico;
+    }
 
+    // ------ END POINT : GET --------
     @GetMapping
-    public List<Produto> getProdutos(){
-        return service.getProdutos();
+    public Page<Produto> buscarProduto(
+        @RequestHeader("Authorization") String authHeader,
+        @RequestParam(required = false) String nome,
+        @RequestParam(required = false) Boolean semEstoque,
+        @RequestParam(required = false) Boolean comEstoquePendente,
+        @RequestParam(required = false) Boolean comEstoqueReservado,
+        @RequestParam(defaultValue = "0") int pagina,
+        @RequestParam(defaultValue = "10") int tamanho
+    ){
+        String token = authHeader.replace("Bearer ", "");
+
+        return servico.buscarProdutos(token, nome, semEstoque, comEstoquePendente, comEstoqueReservado, pagina, tamanho);
     }
 
-    @GetMapping("/esgotado")
-    public List<Produto> getForaDeEstoque(){
-        return service.getProdutosForaDeEstoque();
+    // ------ END POINT : POST --------
+    @PostMapping
+    public ResponseEntity<Produto> postProduto(
+            @RequestHeader("Authorization") String authHeader,
+            @Valid @RequestBody ProdutoDTO dto
+    ) {
+        String token = authHeader.replace("Bearer ", "");
+
+        return servico.addProduto(dto, token)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.badRequest().build());
     }
 
-    @GetMapping("/{id}")
-    public Optional<Produto> getProduto(@PathVariable String id){
-        return service.getProdutoById(id);
+    // ------ END POINT : PUT --------
+    @PutMapping("/{id}")
+    public ResponseEntity<Produto> alterarProduto(
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String authHeader,
+            @Valid @RequestBody ProdutoDTO dto
+    ) {
+        String token = authHeader.replace("Bearer ", "");
+
+        return servico.atualizarPorId(token, id, dto.getNome(), dto.getPreco())
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.badRequest().build());
     }
 
-        //------- POST --------
+    // ------ END POINT : DELETE --------
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Produto> deletarProduto(
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        String token = authHeader.replace("Bearer ", "");
 
-    @PostMapping("/produtos")
-    public List<Produto> addProdutos(@RequestBody @Valid List<ProdutoDTO> lista) {
-        return lista.stream().map(dto -> service.addProduto(dto)).toList();
+        return servico.removerPorId(token, id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.badRequest().build());
     }
 
-        //------- REMOVE --------
-
-    @DeleteMapping("/produtos/{id}")
-    public Optional<Produto> deleteProduto(@PathVariable String id){
-        return service.removeProduto(id);
-    }
 }
