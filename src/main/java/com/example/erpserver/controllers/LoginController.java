@@ -1,15 +1,12 @@
 package com.example.erpserver.controllers;
 
 import com.example.erpserver.DTOs.LoginDTO;
-import com.example.erpserver.DTOs.TokenDTO;
+import com.example.erpserver.DTOs.RespostaDTO;
 import com.example.erpserver.services.ServicoLogin;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/login")
@@ -23,19 +20,10 @@ public class LoginController {
     }
 
     @PostMapping
-    public ResponseEntity<?> autenticar(@RequestBody LoginDTO loginRequest) {
-        Optional<String> tokenOpt = servicoLogin.autenticar(
-                loginRequest.getEmail(), loginRequest.getSenha()
-        );
-
-        if (tokenOpt.isPresent()) {
-            TokenDTO token = new TokenDTO(tokenOpt.get());
-            return ResponseEntity.ok(token);
-        } else {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Credenciais inválidas");
-        }
+    public ResponseEntity<RespostaDTO> autenticar(@RequestBody @Valid LoginDTO loginRequest) {
+        return servicoLogin.autenticar(loginRequest.getEmail(), loginRequest.getSenha())
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.badRequest().build());
     }
-
 }
 

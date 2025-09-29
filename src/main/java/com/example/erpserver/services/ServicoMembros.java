@@ -98,4 +98,5 @@ public class ServicoMembros {
         Pageable pageable = PageRequest.of(pagina, tamanho);
         return membros.findByAssinanteIdAndNomeStartingWithIgnoreCase(assinanteId, prefixoNome, pageable);
     }
+
 }

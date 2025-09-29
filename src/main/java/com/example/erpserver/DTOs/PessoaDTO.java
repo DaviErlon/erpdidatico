@@ -18,7 +18,7 @@ public class PessoaDTO {
     @CPF(message = "CPF inválido")
     private String cpf;
 
-    @NotBlank
+    @NotBlank(message = "contato não pode ser nulo")
     private String contato;
 
     private boolean fornecedor;

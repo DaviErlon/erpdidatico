@@ -53,13 +53,14 @@ public class ServicoProdutos {
 
     // ---------- Atualizar Produto ----------
     @Transactional
-    public Optional<Produto> atualizarPorId(String token, Long produtoId, String nome, Double preco) {
+    public Optional<Produto> atualizarPorId(String token, Long produtoId, String nome, Double preco, int quantidade) {
         Long assinanteId = jwtUtil.extrairAdminId(token);
 
         return repositorio.findByAssinanteIdAndId(assinanteId, produtoId)
                 .map(produto -> {
                     produto.setNome(nome);
                     produto.setPreco(preco);
+                    produto.setEstoqueDisponivel(quantidade);
                     return repositorio.save(produto);
                 });
     }

@@ -34,6 +34,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             try {
                 if (jwtUtil.tokenValido(token)) {
+
                     String email = jwtUtil.extrairEmail(token);
                     var roles = jwtUtil.extrairRoles(token).stream()
                             .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
@@ -41,12 +42,23 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
                     var authToken = new UsernamePasswordAuthenticationToken(email, null, roles);
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+
+                } else {
+
+                    SecurityContextHolder.clearContext();
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401
+                    response.getWriter().write("Token expirado ou inválido");
+                    return;
                 }
             } catch (Exception e) {
+
                 SecurityContextHolder.clearContext();
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("Token inválido");
+                return;
             }
         }
+
         filterChain.doFilter(request, response);
     }
 }
-

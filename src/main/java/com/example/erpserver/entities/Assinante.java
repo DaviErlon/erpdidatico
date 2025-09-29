@@ -34,7 +34,6 @@ public class Assinante {
     @JsonIgnore
     private String senhaHash;
 
-    @JsonIgnore
     private int plano;
 
     @JsonIgnore

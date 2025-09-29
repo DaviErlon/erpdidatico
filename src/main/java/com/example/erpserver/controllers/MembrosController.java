@@ -9,8 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Optional;
-
 @RestController
 @RequestMapping("/api/membros")
 @Validated
@@ -24,15 +22,14 @@ public class MembrosController {
 
     // ------ END POINT : GET --------
 
-    @GetMapping("/{nome}")
+    @GetMapping
     public Page<Membro> buscarMembros(
             @RequestHeader("Authorization") String authHeader,
-            @PathVariable String nome,
+            @RequestParam(defaultValue = "") String nome,
             @RequestParam(defaultValue = "0") int pagina,
             @RequestParam(defaultValue = "10") int tamanho
-    ){
+    ) {
         String token = authHeader.replace("Bearer ", "");
-
         return servico.buscarPorNome(token, nome, pagina, tamanho);
     }
 

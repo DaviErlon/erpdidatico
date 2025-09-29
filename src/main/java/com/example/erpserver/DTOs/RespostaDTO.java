@@ -9,6 +9,9 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class TokenDTO {
+public class RespostaDTO {
     private String token;
+    private int plano;
+    private boolean assinante;
+    private String nome;
 }

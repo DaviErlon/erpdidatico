@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/produtos")
+@CrossOrigin(origins = "*")
 @Validated
 public class ProdutosController {
 
@@ -59,7 +60,7 @@ public class ProdutosController {
     ) {
         String token = authHeader.replace("Bearer ", "");
 
-        return servico.atualizarPorId(token, id, dto.getNome(), dto.getPreco())
+        return servico.atualizarPorId(token, id, dto.getNome(), dto.getPreco(), dto.getQuantidade())
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.badRequest().build());
     }
