@@ -4,17 +4,16 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
 
 @Entity
 @Table(
-        name = "produtos",
+        name = "fornecedores",
         indexes = {
-                @Index(name = "idx_produto_nome", columnList = "nome")
+                @Index(name = "idx_fornecedor_cpf", columnList = "cpf"),
+                @Index(name = "idx_fornecedor_cnpj", columnList = "cnpj"),
+                @Index(name = "idx_fornecedor_nome", columnList = "nome")
         }
 )
 @Getter
@@ -23,39 +22,29 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class Produto {
+public class Fornecedor {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @EqualsAndHashCode.Include
     private UUID id;
 
+    @Column(length = 11, unique = true)
+    private String cpf;
+
+    @Column(length = 14, unique = true)
+    private String cnpj;
+
     @Column(nullable = false)
     private String nome;
 
-    @Column(nullable = false, precision = 19, scale = 2)
-    private BigDecimal preco;
-
-    @Column(nullable = false)
-    private int estoqueDisponivel;
-
-    @Column(nullable = false)
-    private int estoquePendente;
-
-    @Column(nullable = false)
-    private int estoqueReservado;
+    @Column
+    private String contato;
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "assinante_id", nullable = false)
     private Ceo ceo;
-
-    @JsonIgnore
-    @OneToMany(mappedBy = "produto",
-            cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE},
-            orphanRemoval = true,
-            fetch = FetchType.LAZY)
-    private Set<ProdutosDosTitulos> produtosDosTitulos = new HashSet<>();
 
     @Column(name = "criado_em", nullable = false, updatable = false)
     private OffsetDateTime criadoEm;
@@ -64,6 +53,10 @@ public class Produto {
     protected void onCreate() {
         if (this.criadoEm == null) {
             this.criadoEm = OffsetDateTime.now();
+        }
+
+        if ((cpf == null || cpf.isBlank()) && (cnpj == null || cnpj.isBlank())) {
+            throw new IllegalStateException("Fornecedor deve possuir CPF ou CNPJ");
         }
     }
 }

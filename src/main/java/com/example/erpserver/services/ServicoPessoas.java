@@ -1,6 +1,6 @@
 package com.example.erpserver.services;
 
-import com.example.erpserver.entities.Pessoa;
+import com.example.erpserver.entities.Clientes;
 import com.example.erpserver.DTOs.PessoaDTO;
 import com.example.erpserver.repository.AssinantesRepositorio;
 import com.example.erpserver.repository.PessoasRepositorio;
@@ -32,26 +32,26 @@ public class ServicoPessoas {
         this.assinantesRepositorio = assinantesRepositorio;
     }
 
-    // ---------- Adicionar Pessoa ----------
+    // ---------- Adicionar Clientes ----------
     @Transactional
-    public Optional<Pessoa> addPessoa(PessoaDTO dto, String token) {
+    public Optional<Clientes> addPessoa(PessoaDTO dto, String token) {
         Long assinanteId = jwtUtil.extrairAdminId(token);
 
         return assinantesRepositorio.findById(assinanteId)
                 .map(assinante -> {
-                    Pessoa pessoa = new Pessoa();
-                    pessoa.setCpf(dto.getCpf());
-                    pessoa.setFornecedor(dto.isFornecedor());
-                    pessoa.setNome(dto.getNome());
-                    pessoa.setAssinante(assinante);
-                    pessoa.setContato(dto.getContato());
-                    return repositorio.save(pessoa);
+                    Clientes clientes = new Clientes();
+                    clientes.setCpf(dto.getCpf());
+                    clientes.setFornecedor(dto.isFornecedor());
+                    clientes.setNome(dto.getNome());
+                    clientes.setCeo(assinante);
+                    clientes.setContato(dto.getContato());
+                    return repositorio.save(clientes);
                 });
     }
 
-    // ---------- Atualizar Pessoa ----------
+    // ---------- Atualizar Clientes ----------
     @Transactional
-    public Optional<Pessoa> atualizarPessoa(String token, Long id, PessoaDTO dto) {
+    public Optional<Clientes> atualizarPessoa(String token, Long id, PessoaDTO dto) {
         Long assinanteId = jwtUtil.extrairAdminId(token);
 
         return repositorio.findByAssinanteIdAndId(assinanteId, id)
@@ -64,7 +64,7 @@ public class ServicoPessoas {
     }
 
     // ---------- Buscar Pessoas (Paginação) ----------
-    public Page<Pessoa> buscarPessoas(
+    public Page<Clientes> buscarPessoas(
             String token,
             String cpf,
             String nome,
@@ -74,14 +74,14 @@ public class ServicoPessoas {
     ) {
         Long assinanteId = jwtUtil.extrairAdminId(token);
         Pageable pageable = PageRequest.of(pagina, tamanho);
-        Specification<Pessoa> spec = PessoaSpecifications.comFiltros(assinanteId, cpf, nome, fornecedor);
+        Specification<Clientes> spec = PessoaSpecifications.comFiltros(assinanteId, cpf, nome, fornecedor);
 
         return repositorio.findAll(spec, pageable);
     }
 
-    // ---------- Remover Pessoa ----------
+    // ---------- Remover Clientes ----------
     @Transactional
-    public Optional<Pessoa> removerPorId(String token, Long id) {
+    public Optional<Clientes> removerPorId(String token, Long id) {
         Long assinanteId = jwtUtil.extrairAdminId(token);
 
         return repositorio.findByAssinanteIdAndId(assinanteId, id)

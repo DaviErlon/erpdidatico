@@ -10,7 +10,6 @@ import com.example.erpserver.repository.ProdutosDosTitulosRepositorio;
 import com.example.erpserver.repository.TitulosRepositorio;
 import com.example.erpserver.security.JwtUtil;
 import com.example.erpserver.specifications.TituloSpecifications;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -57,10 +56,10 @@ public class ServicoTitulos {
     public Optional<Titulo> criarTitulo(String token, TituloDTO dto) {
         Long assinanteId = jwtUtil.extrairAdminId(token);
 
-        Assinante assinante = assinantesRepositorio.findById(assinanteId).orElse(null);
-        Pessoa pessoa = pessoasRepositorio.findByAssinanteIdAndId(assinanteId, dto.getId()).orElse(null);
+        Ceo ceo = assinantesRepositorio.findById(assinanteId).orElse(null);
+        Clientes clientes = pessoasRepositorio.findByAssinanteIdAndId(assinanteId, dto.getId()).orElse(null);
 
-        if (assinante == null || pessoa == null) return Optional.empty();
+        if (ceo == null || clientes == null) return Optional.empty();
 
         double valorTotal = 0.0;
         List<ProdutosDosTitulos> listaProdutosTitulo = new ArrayList<>();
@@ -69,7 +68,7 @@ public class ServicoTitulos {
             Produto produto = produtosRepositorio.findByAssinanteIdAndId(assinanteId, item.getProdutoId()).orElse(null);
             if (produto == null) return Optional.empty();
 
-            if (!pessoa.isFornecedor() && produto.getEstoqueDisponivel() < item.getQuantidade()) {
+            if (!clientes.isFornecedor() && produto.getEstoqueDisponivel() < item.getQuantidade()) {
                 return Optional.empty();
             }
 
@@ -79,19 +78,19 @@ public class ServicoTitulos {
             listaProdutosTitulo.add(pdt);
 
             double subtotal = produto.getPreco() * item.getQuantidade();
-            valorTotal += pessoa.isFornecedor() ? -subtotal : subtotal;
+            valorTotal += clientes.isFornecedor() ? -subtotal : subtotal;
         }
 
         Titulo titulo = new Titulo();
-        titulo.setAssinante(assinante);
-        titulo.setPessoa(pessoa);
+        titulo.setCeo(ceo);
+        titulo.setClientes(clientes);
         titulo.setValor(valorTotal);
         titulo = repositorio.save(titulo);
 
         // Associar produtos ao título
         for (ProdutosDosTitulos pdt : listaProdutosTitulo) {
             pdt.setTitulo(titulo);
-            if (pessoa.isFornecedor()) {
+            if (clientes.isFornecedor()) {
                 servicoProdutos.addEstoquePendente(token, pdt.getProduto().getId(), pdt.getQuantidadeProduto());
             } else {
                 servicoProdutos.addEstoqueReservado(token, pdt.getProduto().getId(), pdt.getQuantidadeProduto());
@@ -117,7 +116,7 @@ public class ServicoTitulos {
                             Produto produto = item.getProduto();
                             int quantidade = item.getQuantidadeProduto();
 
-                            if (titulo.getPessoa().isFornecedor()) {
+                            if (titulo.getClientes().isFornecedor()) {
                                 produto.setEstoquePendente(produto.getEstoquePendente() - quantidade);
                             } else {
                                 produto.setEstoqueReservado(produto.getEstoqueReservado() - quantidade);
@@ -148,7 +147,7 @@ public class ServicoTitulos {
                         Produto produto = item.getProduto();
                         int quantidade = item.getQuantidadeProduto();
 
-                        if (titulo.getPessoa().isFornecedor()) {
+                        if (titulo.getClientes().isFornecedor()) {
                             servicoProdutos.quitarEstoquePendente(token, produto.getId(), quantidade);
                         } else {
                             servicoProdutos.quitarEstoqueReservado(token, produto.getId(), quantidade);
@@ -171,15 +170,15 @@ public class ServicoTitulos {
         if (tituloOpt.isEmpty() ) return Optional.empty();
         Titulo titulo = tituloOpt.get();
 
-        Optional<Pessoa> pessoaOpt = pessoasRepositorio.findByAssinanteIdAndId(assinanteId, dto.getId());
+        Optional<Clientes> pessoaOpt = pessoasRepositorio.findByAssinanteIdAndId(assinanteId, dto.getId());
         if (pessoaOpt.isEmpty()) return Optional.empty();
-        Pessoa pessoa = pessoaOpt.get();
+        Clientes clientes = pessoaOpt.get();
 
         for (ItemProdutoDTO item : dto.getProdutos()) {
             Optional<Produto> produtoOpt = produtosRepositorio.findByAssinanteIdAndId(assinanteId, item.getProdutoId());
             if (produtoOpt.isEmpty()) return Optional.empty();
             Produto produto = produtoOpt.get();
-            if (!pessoa.isFornecedor() && produto.getEstoqueDisponivel() < item.getQuantidade()) {
+            if (!clientes.isFornecedor() && produto.getEstoqueDisponivel() < item.getQuantidade()) {
                 return Optional.empty();
             }
         }
@@ -189,7 +188,7 @@ public class ServicoTitulos {
             Produto produto = item.getProduto();
             int quantidade = item.getQuantidadeProduto();
 
-            if (titulo.getPessoa().isFornecedor()) {
+            if (titulo.getClientes().isFornecedor()) {
                 servicoProdutos.quitarEstoquePendente(token, produto.getId(), quantidade);
             } else {
                 servicoProdutos.quitarEstoqueReservado(token, produto.getId(), quantidade);
@@ -199,7 +198,7 @@ public class ServicoTitulos {
         }
         produtosDosTitulos.deleteByTitulo(titulo);
 
-        titulo.setPessoa(pessoa);
+        titulo.setClientes(clientes);
 
         double valorTotal = 0.0;
         List<ProdutosDosTitulos> listaProdutosTitulo = new ArrayList<>();
@@ -213,7 +212,7 @@ public class ServicoTitulos {
             listaProdutosTitulo.add(pdt);
 
             double subtotal = produto.getPreco() * item.getQuantidade();
-            if (pessoa.isFornecedor()) {
+            if (clientes.isFornecedor()) {
                 servicoProdutos.addEstoquePendente(token, produto.getId(), item.getQuantidade());
                 valorTotal -= subtotal;
             } else {

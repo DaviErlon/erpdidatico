@@ -1,8 +1,7 @@
 package com.example.erpserver.controllers;
 
 import com.example.erpserver.DTOs.CadastroDTO;
-import com.example.erpserver.DTOs.CadastroMembroDTO;
-import com.example.erpserver.entities.Assinante;
+import com.example.erpserver.entities.Ceo;
 import com.example.erpserver.services.ServicoCadastro;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -25,7 +24,7 @@ public class CadastroController {
 
     //------- POST --------
     @PostMapping
-    public ResponseEntity<Assinante> addAssinante(
+    public ResponseEntity<Ceo> addAssinante(
             @RequestBody @Valid CadastroDTO dto
     ){
         return servico.addAssinante(dto)

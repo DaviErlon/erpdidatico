@@ -1,21 +1,21 @@
 package com.example.erpserver.specifications;
 
-import com.example.erpserver.entities.Pessoa;
+import com.example.erpserver.entities.Clientes;
 import org.springframework.data.jpa.domain.Specification;
 
 public class PessoaSpecifications {
 
-    public static Specification<Pessoa> doAssinante(Long assinanteId) {
+    public static Specification<Clientes> doAssinante(Long assinanteId) {
         return (root, query, criteriaBuilder) ->
                 criteriaBuilder.equal(root.get("assinante").get("id"), assinanteId);
     }
 
-    public static Specification<Pessoa> comCpf(String cpf) {
+    public static Specification<Clientes> comCpf(String cpf) {
         return (root, query, criteriaBuilder) ->
                 cpf == null ? null : criteriaBuilder.like(root.get("cpf"), cpf + "%");
     }
 
-    public static Specification<Pessoa> comNome(String nome) {
+    public static Specification<Clientes> comNome(String nome) {
         return (root, query, criteriaBuilder) ->
                 nome == null ? null : criteriaBuilder.like(
                         criteriaBuilder.lower(root.get("nome")),
@@ -23,7 +23,7 @@ public class PessoaSpecifications {
                 );
     }
 
-    public static Specification<Pessoa> isFornecedor(Boolean fornecedor) {
+    public static Specification<Clientes> isFornecedor(Boolean fornecedor) {
         return (root, query, criteriaBuilder) -> {
             if (fornecedor == null) return null;
             return fornecedor ?
@@ -32,12 +32,12 @@ public class PessoaSpecifications {
         };
     }
 
-    public static Specification<Pessoa> comFiltros(
+    public static Specification<Clientes> comFiltros(
             Long assinanteId,
             String cpf, String nome,
             Boolean fornecedor
     ) {
-        Specification<Pessoa> spec = doAssinante(assinanteId);
+        Specification<Clientes> spec = doAssinante(assinanteId);
 
         // Adiciona filtros condicionalmente
         if (cpf != null && !cpf.isEmpty()) {

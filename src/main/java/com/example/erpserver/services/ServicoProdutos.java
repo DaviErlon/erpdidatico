@@ -45,7 +45,7 @@ public class ServicoProdutos {
                     produto.setEstoqueDisponivel(dto.getQuantidade());
                     produto.setEstoquePendente(0);
                     produto.setEstoqueReservado(0);
-                    produto.setAssinante(assinante);
+                    produto.setCeo(assinante);
 
                     return repositorio.save(produto);
                 });

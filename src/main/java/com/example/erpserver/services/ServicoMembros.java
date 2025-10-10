@@ -1,7 +1,6 @@
 package com.example.erpserver.services;
 
 import com.example.erpserver.DTOs.CadastroMembroDTO;
-import com.example.erpserver.entities.Membro;
 import com.example.erpserver.repository.AssinantesRepositorio;
 import com.example.erpserver.repository.MembrosRepositorio;
 import com.example.erpserver.security.JwtUtil;
@@ -29,9 +28,9 @@ public class ServicoMembros {
         this.passwordEncoder = new BCryptPasswordEncoder(); // Criptografia da senha
     }
 
-    // ---------- Adicionar Membro ----------
+    // ---------- Adicionar Gerente ----------
     @Transactional
-    public Optional<Membro> addMembro(String token, CadastroMembroDTO dto) {
+    public Optional<Gerente> addMembro(String token, CadastroMembroDTO dto) {
         Long assinanteId = jwtUtil.extrairAdminId(token);
 
         // Se já existe membro com o mesmo email, retorna vazio
@@ -54,46 +53,46 @@ public class ServicoMembros {
                         return Optional.empty();
                     }
 
-                    Membro membro = new Membro();
-                    membro.setNome(dto.getNome());
-                    membro.setEmail(dto.getEmail());
-                    membro.setSenhaHash(passwordEncoder.encode(dto.getSenha()));
-                    membro.setAssinante(assinante);
-                    return Optional.of(membros.save(membro));
+                    Gerente gerente = new Gerente();
+                    gerente.setNome(dto.getNome());
+                    gerente.setEmail(dto.getEmail());
+                    gerente.setSenhaHash(passwordEncoder.encode(dto.getSenha()));
+                    gerente.setCeo(assinante);
+                    return Optional.of(membros.save(gerente));
                 });
     }
 
 
-    // ---------- Editar Membro ----------
+    // ---------- Editar Gerente ----------
     @Transactional
-    public Optional<Membro> editarMembro(String token, Long membroId, CadastroMembroDTO dto) {
+    public Optional<Gerente> editarMembro(String token, Long membroId, CadastroMembroDTO dto) {
         Long assinanteId = jwtUtil.extrairAdminId(token);
 
         return membros.findById(membroId)
-                .filter(m -> m.getAssinante().getId().equals(assinanteId))
-                .map(membro -> {
-                    membro.setNome(dto.getNome());
-                    membro.setEmail(dto.getEmail());
-                    membro.setSenhaHash(passwordEncoder.encode(dto.getSenha()));
-                    return membros.save(membro);
+                .filter(m -> m.getCeo().getId().equals(assinanteId))
+                .map(gerente -> {
+                    gerente.setNome(dto.getNome());
+                    gerente.setEmail(dto.getEmail());
+                    gerente.setSenhaHash(passwordEncoder.encode(dto.getSenha()));
+                    return membros.save(gerente);
                 });
     }
 
-    // ---------- Remover Membro ----------
+    // ---------- Remover Gerente ----------
     @Transactional
-    public Optional<Membro> removerMembro(String token, Long membroId) {
+    public Optional<Gerente> removerMembro(String token, Long membroId) {
         Long assinanteId = jwtUtil.extrairAdminId(token);
 
         return membros.findById(membroId)
-                .filter(m -> m.getAssinante().getId().equals(assinanteId))
-                .map(membro -> {
-                    membros.delete(membro);
-                    return membro;
+                .filter(m -> m.getCeo().getId().equals(assinanteId))
+                .map(gerente -> {
+                    membros.delete(gerente);
+                    return gerente;
                 });
     }
 
     // ---------- Buscar Membros por Nome (Paginação) ----------
-    public Page<Membro> buscarPorNome(String token, String prefixoNome, int pagina, int tamanho) {
+    public Page<Gerente> buscarPorNome(String token, String prefixoNome, int pagina, int tamanho) {
         Long assinanteId = jwtUtil.extrairAdminId(token);
         Pageable pageable = PageRequest.of(pagina, tamanho);
         return membros.findByAssinanteIdAndNomeStartingWithIgnoreCase(assinanteId, prefixoNome, pageable);

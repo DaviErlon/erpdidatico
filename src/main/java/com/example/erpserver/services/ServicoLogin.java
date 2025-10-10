@@ -1,7 +1,6 @@
 package com.example.erpserver.services;
 
 import com.example.erpserver.DTOs.RespostaDTO;
-import com.example.erpserver.entities.Assinante;
 import com.example.erpserver.repository.AssinantesRepositorio;
 import com.example.erpserver.repository.MembrosRepositorio;
 import com.example.erpserver.security.JwtUtil;
@@ -66,12 +65,12 @@ public class ServicoLogin {
                                     m.getEmail(),
                                     Set.of("USER"),
                                     m.getId(),
-                                    m.getAssinante().getId()
+                                    m.getCeo().getId()
                             )
                     );
 
                     resposta.setAssinante(false);
-                    resposta.setPlano(m.getAssinante().getPlano());
+                    resposta.setPlano(m.getCeo().getPlano());
                     resposta.setNome(m.getNome());
 
                     return resposta;

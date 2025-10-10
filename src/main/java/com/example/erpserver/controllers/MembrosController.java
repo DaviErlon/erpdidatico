@@ -1,7 +1,6 @@
 package com.example.erpserver.controllers;
 
 import com.example.erpserver.DTOs.CadastroMembroDTO;
-import com.example.erpserver.entities.Membro;
 import com.example.erpserver.services.ServicoMembros;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -23,7 +22,7 @@ public class MembrosController {
     // ------ END POINT : GET --------
 
     @GetMapping
-    public Page<Membro> buscarMembros(
+    public Page<Gerente> buscarMembros(
             @RequestHeader("Authorization") String authHeader,
             @RequestParam(defaultValue = "") String nome,
             @RequestParam(defaultValue = "0") int pagina,
@@ -35,7 +34,7 @@ public class MembrosController {
 
     //------- POST --------
     @PostMapping
-    public ResponseEntity<Membro> adicionarMembros(
+    public ResponseEntity<Gerente> adicionarMembros(
             @RequestHeader("Authorization") String authHeader,
             @RequestBody @Valid CadastroMembroDTO dto
     ){
@@ -48,7 +47,7 @@ public class MembrosController {
 
     //------- DELETE --------
     @DeleteMapping("/{id}")
-    public ResponseEntity<Membro> removerMembro(
+    public ResponseEntity<Gerente> removerMembro(
         @RequestHeader("Authorization") String authHeader,
         @RequestParam Long id
     ){

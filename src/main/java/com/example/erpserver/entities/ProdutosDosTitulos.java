@@ -2,33 +2,42 @@ package com.example.erpserver.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
+import java.util.UUID;
 
 @Entity
-@Table(name = "produtos_em_titulos")
-@Data
+@Table(
+        name = "produtos_dos_titulos",
+        indexes = {
+                @Index(name = "idx_produto_titulo", columnList = "titulo_id")
+        }
+)
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class ProdutosDosTitulos {
 
-    @JsonIgnore
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @EqualsAndHashCode.Include
+    private UUID id;
 
-    private int quantidadeProduto;
+    @Column(nullable = false, length = 150)
+    private String nome;
+
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal valor;
+
+    @Column(nullable = false)
+    private int quantidade;
 
     @JsonIgnore
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "titulo_id", nullable = false)
     private Titulo titulo;
-
-    @ManyToOne
-    @JoinColumn(name = "produto_id", nullable = false)
-    private Produto produto;
-
 }

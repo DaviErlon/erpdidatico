@@ -17,7 +17,7 @@ import java.util.List;
 @NoArgsConstructor
 public class TituloDTO {
 
-    @NotNull(message = "Pessoa não identificada")
+    @NotNull(message = "Clientes não identificada")
     private Long id;
 
     @NotNull(message = "A lista de produtos não pode ser nula")

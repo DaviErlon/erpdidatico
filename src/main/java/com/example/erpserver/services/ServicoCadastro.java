@@ -1,7 +1,7 @@
 package com.example.erpserver.services;
 
 import com.example.erpserver.DTOs.CadastroDTO;
-import com.example.erpserver.entities.Assinante;
+import com.example.erpserver.entities.Ceo;
 
 import com.example.erpserver.repository.AssinantesRepositorio;
 import org.springframework.stereotype.Service;
@@ -21,15 +21,15 @@ public class ServicoCadastro {
         this.passwordEncoder = passwordEncoder;
     }
 
-    // ---------- Adicionar Assinante ----------
+    // ---------- Adicionar Ceo ----------
     @Transactional
-    public Optional<Assinante> addAssinante(CadastroDTO dto) {
+    public Optional<Ceo> addAssinante(CadastroDTO dto) {
 
         if (assinantes.findByEmail(dto.getEmail()).isPresent() || assinantes.findByCpf(dto.getCpf()).isPresent()) {
             return Optional.empty();
         }
 
-        Assinante novo = new Assinante();
+        Ceo novo = new Ceo();
         novo.setNome(dto.getNome());
         novo.setEmail(dto.getEmail());
         novo.setCpf(dto.getCpf());
