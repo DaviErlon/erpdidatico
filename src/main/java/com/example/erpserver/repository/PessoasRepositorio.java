@@ -6,13 +6,14 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface PessoasRepositorio extends JpaRepository<Clientes, Long>, JpaSpecificationExecutor<Clientes> {
+public interface PessoasRepositorio extends JpaRepository<Clientes, UUID>, JpaSpecificationExecutor<Clientes> {
 
-    Optional<Clientes> findByAssinanteIdAndId(Long assinanteId, Long id);
+    Optional<Clientes> findByAssinanteIdAndId(UUID assinanteId, UUID id);
 
-    void deleteByAssinanteIdAndId(Long assinanteId, Long id);
+    void deleteByAssinanteIdAndId(UUID assinanteId, UUID id);
 }
 
 

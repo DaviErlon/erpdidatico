@@ -38,7 +38,8 @@ public class ProdutoSpecifications {
             String nome,
             Boolean semEstoqueFisico,
             Boolean comEstoquePendente,
-            Boolean comEstoqueReservado) {
+            Boolean comEstoqueReservado
+    ) {
 
         return Specification.allOf(
                 doAssinante(assinanteId),

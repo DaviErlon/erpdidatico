@@ -36,7 +36,7 @@ public class Funcionario {
     @EqualsAndHashCode.Include
     private UUID id;
 
-    @Column(nullable = false, unique = true, length = 11)
+    @Column(nullable = false, length = 11)
     private String cpf;
 
     @Column(nullable = false)

@@ -29,10 +29,10 @@ public class Fornecedor {
     @EqualsAndHashCode.Include
     private UUID id;
 
-    @Column(length = 11, unique = true)
+    @Column(length = 11)
     private String cpf;
 
-    @Column(length = 14, unique = true)
+    @Column(length = 14)
     private String cnpj;
 
     @Column(nullable = false)

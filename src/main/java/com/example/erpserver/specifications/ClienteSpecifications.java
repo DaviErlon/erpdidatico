@@ -3,9 +3,11 @@ package com.example.erpserver.specifications;
 import com.example.erpserver.entities.Clientes;
 import org.springframework.data.jpa.domain.Specification;
 
-public class PessoaSpecifications {
+import java.util.UUID;
 
-    public static Specification<Clientes> doAssinante(Long assinanteId) {
+public class ClienteSpecifications {
+
+    public static Specification<Clientes> doAssinante(UUID assinanteId) {
         return (root, query, criteriaBuilder) ->
                 criteriaBuilder.equal(root.get("assinante").get("id"), assinanteId);
     }
@@ -23,33 +25,19 @@ public class PessoaSpecifications {
                 );
     }
 
-    public static Specification<Clientes> isFornecedor(Boolean fornecedor) {
-        return (root, query, criteriaBuilder) -> {
-            if (fornecedor == null) return null;
-            return fornecedor ?
-                    criteriaBuilder.isTrue(root.get("fornecedor")) :
-                    criteriaBuilder.isFalse(root.get("fornecedor"));
-        };
-    }
-
     public static Specification<Clientes> comFiltros(
-            Long assinanteId,
-            String cpf, String nome,
-            Boolean fornecedor
+            UUID assinanteId,
+            String cpf,
+            String nome
     ) {
         Specification<Clientes> spec = doAssinante(assinanteId);
 
-        // Adiciona filtros condicionalmente
         if (cpf != null && !cpf.isEmpty()) {
             spec = spec.and(comCpf(cpf));
         }
 
         if (nome != null && !nome.isEmpty()) {
             spec = spec.and(comNome(nome));
-        }
-
-        if (fornecedor != null) {
-            spec = spec.and(isFornecedor(fornecedor));
         }
 
         return spec;

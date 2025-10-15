@@ -36,6 +36,9 @@ public class Titulo {
     @Column(nullable = false)
     private boolean pago = false;
 
+    @Column
+    private boolean recebido = false;
+
     @Column(name = "criado_em", nullable = false, updatable = false)
     private OffsetDateTime criadoEm;
 
@@ -45,8 +48,12 @@ public class Titulo {
     private Ceo assinante;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "pessoa_id", referencedColumnName = "id")
-    private Clientes pessoa;
+    @JoinColumn(name = "cliente_id", referencedColumnName = "id")
+    private Clientes cliente;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "fornecedor_id", referencedColumnName = "id")
+    private Fornecedor fornecedor;
 
     @OneToMany(mappedBy = "titulo",
             cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE},
@@ -62,6 +69,10 @@ public class Titulo {
 
         if (this.valor != null && this.valor.signum() == 0) {
             this.valor = BigDecimal.ZERO;
+        }
+
+        if ((cliente == null && fornecedor == null) || (cliente != null && fornecedor != null)) {
+            throw new IllegalArgumentException("O título deve estar associado a um cliente ou a um fornecedor, mas não aos dois");
         }
     }
 }

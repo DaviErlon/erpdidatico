@@ -6,12 +6,12 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface ProdutosRepositorio extends JpaRepository<Produto, Long>, JpaSpecificationExecutor<Produto> {
+public interface ProdutosRepositorio extends JpaRepository<Produto, UUID>, JpaSpecificationExecutor<Produto> {
 
-    // Buscar produto específico por assinante e ID do produto
-    Optional<Produto> findByAssinanteIdAndId(Long assinanteId, Long produtoId);
+    Optional<Produto> findByAssinanteIdAndId(UUID assinanteId, UUID produtoId);
 }
 
 

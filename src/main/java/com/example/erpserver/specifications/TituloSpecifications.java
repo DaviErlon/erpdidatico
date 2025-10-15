@@ -1,5 +1,6 @@
 package com.example.erpserver.specifications;
 
+import com.example.erpserver.entities.Fornecedor;
 import com.example.erpserver.entities.Titulo;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -15,8 +16,16 @@ public class TituloSpecifications {
     public static Specification<Titulo> comCpf(String cpf) {
         return (root, query, criteriaBuilder) ->
                 cpf == null || cpf.isEmpty() ? null : criteriaBuilder.like(
-                        root.get("pessoa").get("cpf"),
+                        root.get("fornecedor").get("cpf"),
                         cpf + "%"
+                );
+    }
+
+    public static Specification<Titulo> comCnpj(String cnpj) {
+        return (root, query, criteriaBuilder) ->
+                cnpj == null || cnpj.isEmpty() ? null : criteriaBuilder.like(
+                        root.get("fornecedor").get("cnpj"),
+                        cnpj + "%"
                 );
     }
 
@@ -44,40 +53,34 @@ public class TituloSpecifications {
         };
     }
 
-    public static Specification<Titulo> aReceber() {
-        return (root, query, criteriaBuilder) ->
-                criteriaBuilder.and(
-                        criteriaBuilder.isFalse(root.get("pago")),
-                        criteriaBuilder.greaterThan(root.get("valor"), 0)
-                );
-    }
-
-    public static Specification<Titulo> aPagar() {
-        return (root, query, criteriaBuilder) ->
-                criteriaBuilder.and(
-                        criteriaBuilder.isFalse(root.get("pago")),
-                        criteriaBuilder.lessThan(root.get("valor"), 0)
-                );
+    public static Specification<Titulo> recebido(Boolean recebido) {
+        return (root, query, criteriaBuilder) -> {
+            if (recebido == null) return null;
+            return recebido ?
+                    criteriaBuilder.isTrue(root.get("recebido")) :
+                    criteriaBuilder.isFalse(root.get("recebido"));
+        };
     }
 
     public static Specification<Titulo> comFiltros(
             Long assinanteId,
             String cpf,
+            String cnpj,
             String nome,
             LocalDateTime inicio,
             LocalDateTime fim,
             Boolean pago,
-            Boolean aReceber,
-            Boolean aPagar) {
+            Boolean recebido
+    ) {
 
         return Specification.allOf(
                 doAssinante(assinanteId),
                 comCpf(cpf),
+                comCnpj(cnpj),
                 comNome(nome),
                 noPeriodo(inicio, fim),
                 pago(pago),
-                aReceber != null && aReceber ? aReceber() : null,
-                aPagar != null && aPagar ? aPagar() : null
+                recebido(recebido)
         );
     }
 }

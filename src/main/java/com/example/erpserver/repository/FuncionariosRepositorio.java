@@ -5,12 +5,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.UUID;
 
 @Repository
-public interface FuncionariosRepositorio extends JpaRepository<Funcionario, String> {
+public interface FuncionariosRepositorio extends JpaRepository<Funcionario, UUID> {
 
-    List<Funcionario> findByAssinanteIdAndNomeStartingWithIgnoreCase(Long assinanteId, String prefixoNome);
-
-    void deleteByAssinanteIdAndCpf(Long assinanteId, String cpf);
+    void deleteByAssinanteIdAndCpf(UUID assinanteId, String cpf);
 }
 

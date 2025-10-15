@@ -6,10 +6,10 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface TitulosRepositorio extends JpaRepository<Titulo, Long>, JpaSpecificationExecutor<Titulo> {
+public interface TitulosRepositorio extends JpaRepository<Titulo, UUID>, JpaSpecificationExecutor<Titulo> {
 
-    // Buscar título específico pelo ID do assinante
-    Optional<Titulo> findByAssinanteIdAndId(Long assinanteId, Long tituloId);
+    Optional<Titulo> findByAssinanteIdAndId(UUID assinanteId, UUID tituloId);
 }

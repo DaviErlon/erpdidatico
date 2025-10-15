@@ -6,11 +6,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.UUID;
 
 @Repository
-public interface ProdutosDosTitulosRepositorio extends JpaRepository<ProdutosDosTitulos, Long> {
+public interface ProdutosDosTitulosRepositorio extends JpaRepository<ProdutosDosTitulos, UUID> {
 
-    List<ProdutosDosTitulos> findByTituloId(Long tituloId);
+    List<ProdutosDosTitulos> findByTituloId(UUID tituloId);
 
     void deleteByTitulo(Titulo titulo);
 }

@@ -5,7 +5,7 @@ import com.example.erpserver.DTOs.PessoaDTO;
 import com.example.erpserver.repository.AssinantesRepositorio;
 import com.example.erpserver.repository.PessoasRepositorio;
 import com.example.erpserver.security.JwtUtil;
-import com.example.erpserver.specifications.PessoaSpecifications;
+import com.example.erpserver.specifications.ClienteSpecifications;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -74,7 +74,7 @@ public class ServicoPessoas {
     ) {
         Long assinanteId = jwtUtil.extrairAdminId(token);
         Pageable pageable = PageRequest.of(pagina, tamanho);
-        Specification<Clientes> spec = PessoaSpecifications.comFiltros(assinanteId, cpf, nome, fornecedor);
+        Specification<Clientes> spec = ClienteSpecifications.comFiltros(assinanteId, cpf, nome, fornecedor);
 
         return repositorio.findAll(spec, pageable);
     }

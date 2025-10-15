@@ -39,7 +39,7 @@ public class Ceo {
     @Column(name = "token_autorizacao", nullable = false, length = 6, unique = true, updatable = false)
     private String tokenAutorizacao;
 
-    @Column(nullable = false, unique = true, length = 11)
+    @Column(nullable = false, length = 11)
     @ToString.Exclude
     private String cpf;
 
