@@ -1,0 +1,56 @@
+package com.example.erpserver.specifications;
+
+import com.example.erpserver.entities.Funcionario;
+import com.example.erpserver.entities.TipoEspecializacao;
+import org.springframework.data.jpa.domain.Specification;
+
+import java.util.UUID;
+
+public class FuncionarioSpecifications {
+
+    public static Specification<Funcionario> doAssinante(UUID assinanteId) {
+        return (root, query, criteriaBuilder) ->
+                criteriaBuilder.equal(root.get("assinante").get("id"), assinanteId);
+    }
+
+    public static Specification<Funcionario> comCpf(String cpf) {
+        return (root, query, criteriaBuilder) ->
+                cpf == null ? null : criteriaBuilder.like(root.get("cpf"), cpf + "%");
+    }
+
+    public static Specification<Funcionario> comNome(String nome) {
+        return (root, query, criteriaBuilder) ->
+                nome == null ? null : criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("nome")),
+                        "%" + nome.toLowerCase() + "%"
+                );
+    }
+
+    public static Specification<Funcionario> comEspecializacao(TipoEspecializacao tipo) {
+        return (root, query, criteriaBuilder) ->
+                tipo == null ? null : criteriaBuilder.equal(root.get("especializacao"), tipo);
+    }
+
+    public static Specification<Funcionario> comFiltros(
+            UUID assinanteId,
+            String cpf,
+            String nome,
+            TipoEspecializacao tipo
+    ) {
+        Specification<Funcionario> spec = doAssinante(assinanteId);
+
+        if (cpf != null && !cpf.isEmpty()) {
+            spec = spec.and(comCpf(cpf));
+        }
+
+        if (nome != null && !nome.isEmpty()) {
+            spec = spec.and(comNome(nome));
+        }
+
+        if (tipo != null) {
+            spec = spec.and(comEspecializacao(tipo));
+        }
+
+        return spec;
+    }
+}

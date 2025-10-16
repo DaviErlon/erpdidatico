@@ -1,13 +1,17 @@
 package com.example.erpserver.DTOs;
 
-import jakarta.validation.constraints.DecimalMin;
+import com.example.erpserver.entities.TipoEspecializacao;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.validator.constraints.br.CPF;
+
+import java.math.BigDecimal;
 
 @Getter
 @Setter
@@ -19,13 +23,20 @@ public class FuncionarioDTO {
     @CPF(message = "CPF inválido")
     private String cpf;
 
-    @DecimalMin(value = "1.518", inclusive = false, message = "O valor não pode ser abaixo do salário mínimo")
-    private double salario;
+    @Positive(message = "O salário deve ser positivo")
+    private BigDecimal salario;
 
-    @NotBlank
-    private String contato;
+    @Positive(message = "O bônus deve ser positivo")
+    private BigDecimal bonus;
+
+    @Size(min = 10, max = 11, message = "O telefone deve ter entre 10 e 11 digitos")
+    private String telefone;
 
     @NotBlank(message = "nome de pessoa não pode ser nulo ou vazia")
     @Size(min = 3, max = 100, message = "O nome deve ter entre 3 e 100 caracteres")
     private String nome;
+
+    @NotBlank(message = "nome do setor não pode ser nulo ou vazio")
+    @Size(min = 3, max = 100, message = "O nome do setor deve ter entre 3 e 100 caracteres")
+    private String setor;
 }

@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
+
 @Setter
 @Getter
 @AllArgsConstructor
@@ -18,7 +20,7 @@ public class ProdutoDTO {
 
     @DecimalMin(value = "0.00", inclusive = false, message = "O valor não pode ser negativo ou zero")
     @DecimalMax(value = "100000000.00", inclusive = true, message = "O valor não pode ser maior que 100 milhões")
-    private double preco;
+    private BigDecimal preco;
 
     @Min(value = 0, message = "A quantidade em estoque não pode ser negativa")
     @Max(value = 100000000, message = "A quantidade não pode ser maior que 100 milhões")

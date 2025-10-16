@@ -23,7 +23,6 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Titulo {
 
     @Id
@@ -36,7 +35,7 @@ public class Titulo {
     @Column(nullable = false)
     private boolean pago = false;
 
-    @Column
+    @Column(nullable = false)
     private boolean recebido = false;
 
     @Column(name = "criado_em", nullable = false, updatable = false)

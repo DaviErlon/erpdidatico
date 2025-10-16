@@ -15,7 +15,6 @@ import java.util.UUID;
 @Table(
         name = "assinantes",
         uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"cpf"}),
                 @UniqueConstraint(columnNames = {"email"})
         },
         indexes = {
@@ -28,19 +27,16 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Ceo {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @EqualsAndHashCode.Include
     private UUID id;
 
     @Column(name = "token_autorizacao", nullable = false, length = 6, unique = true, updatable = false)
     private String tokenAutorizacao;
 
-    @Column(nullable = false, length = 11)
-    @ToString.Exclude
+    @Column(nullable = false, length = 11, unique = true)
     private String cpf;
 
     @Column(nullable = false)
@@ -49,9 +45,8 @@ public class Ceo {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @JsonIgnore
     @Column(name = "senha_hash", nullable = false)
-    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-    @ToString.Exclude
     private String senhaHash;
 
     private int plano;
@@ -64,7 +59,6 @@ public class Ceo {
             cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE},
             orphanRemoval = true,
             fetch = FetchType.LAZY)
-    @ToString.Exclude
     private Set<Funcionario> funcionarios = new HashSet<>();
 
     @JsonIgnore
@@ -72,7 +66,6 @@ public class Ceo {
             cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE},
             orphanRemoval = true,
             fetch = FetchType.LAZY)
-    @ToString.Exclude
     private Set<Clientes> clientes = new HashSet<>();
 
     @JsonIgnore
@@ -80,7 +73,6 @@ public class Ceo {
             cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE},
             orphanRemoval = true,
             fetch = FetchType.LAZY)
-    @ToString.Exclude
     private Set<Clientes> fornecedores = new HashSet<>();
 
     @JsonIgnore
@@ -88,7 +80,6 @@ public class Ceo {
             cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE},
             orphanRemoval = true,
             fetch = FetchType.LAZY)
-    @ToString.Exclude
     private Set<Produto> produtos = new HashSet<>();
 
     @JsonIgnore
@@ -96,7 +87,6 @@ public class Ceo {
             cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE},
             orphanRemoval = true,
             fetch = FetchType.LAZY)
-    @ToString.Exclude
     private Set<Titulo> titulos = new HashSet<>();
 
     @PrePersist

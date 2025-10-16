@@ -4,7 +4,6 @@ import com.example.erpserver.DTOs.ItemProdutoDTO;
 import com.example.erpserver.DTOs.TituloDTO;
 import com.example.erpserver.entities.*;
 import com.example.erpserver.repository.AssinantesRepositorio;
-import com.example.erpserver.repository.PessoasRepositorio;
 import com.example.erpserver.repository.ProdutosRepositorio;
 import com.example.erpserver.repository.ProdutosDosTitulosRepositorio;
 import com.example.erpserver.repository.TitulosRepositorio;

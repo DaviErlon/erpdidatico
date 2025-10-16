@@ -12,18 +12,16 @@ import org.hibernate.validator.constraints.br.CPF;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class PessoaDTO {
+public class ClienteDTO {
 
     @NotBlank(message = "O CPF é obrigatório")
     @CPF(message = "CPF inválido")
     private String cpf;
 
-    @NotBlank(message = "contato não pode ser nulo")
-    private String contato;
+    @Size(min = 10, max = 11, message = "O telefone deve ter entre 10 e 11 digitos")
+    private String telefone;
 
-    private boolean fornecedor;
-
-    @NotBlank(message = "nome de pessoa não pode ser nulo ou vazia")
+    @NotBlank(message = "nome do cliente não pode ser nulo ou vazia")
     @Size(min = 3, max = 100, message = "O nome deve ter entre 3 e 100 caracteres")
     private String nome;
 }

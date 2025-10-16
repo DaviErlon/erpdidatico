@@ -3,7 +3,6 @@ package com.example.erpserver.services;
 import com.example.erpserver.entities.Clientes;
 import com.example.erpserver.DTOs.PessoaDTO;
 import com.example.erpserver.repository.AssinantesRepositorio;
-import com.example.erpserver.repository.PessoasRepositorio;
 import com.example.erpserver.security.JwtUtil;
 import com.example.erpserver.specifications.ClienteSpecifications;
 import jakarta.transaction.Transactional;

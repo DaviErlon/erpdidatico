@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -14,7 +16,7 @@ import lombok.Setter;
 public class ItemProdutoDTO {
 
     @NotNull(message = "ID do produto é obrigatório")
-    private Long produtoId;
+    private UUID produtoId;
 
     @Min(value = 1, message = "Quantidade deve ser pelo menos 1")
     private int quantidade;

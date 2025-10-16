@@ -21,12 +21,10 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Fornecedor {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @EqualsAndHashCode.Include
     private UUID id;
 
     @Column(length = 11)
@@ -38,8 +36,7 @@ public class Fornecedor {
     @Column(nullable = false)
     private String nome;
 
-    @Column
-    private String contato;
+    private String telefone;
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

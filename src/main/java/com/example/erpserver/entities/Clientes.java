@@ -11,8 +11,8 @@ import java.util.UUID;
 @Table(
         name = "clientes",
         indexes = {
-                @Index(name = "idx_cliente_cpf", columnList = "cpf"),
-                @Index(name = "idx_cliente_nome", columnList = "nome")
+                @Index(name = "idx_cliente_nome", columnList = "nome"),
+                @Index(name = "idx_cliente_cpf", columnList = "cpf")
         }
 )
 @Getter
@@ -20,12 +20,10 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Clientes {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @EqualsAndHashCode.Include
     private UUID id;
 
     @Column(length = 11)
@@ -34,8 +32,8 @@ public class Clientes {
     @Column(nullable = false)
     private String nome;
 
-    @Column
-    private String contato;
+    @Column(length = 11)
+    private String telefone;
 
     @Column(name = "criado_em", nullable = false, updatable = false)
     private OffsetDateTime criadoEm;

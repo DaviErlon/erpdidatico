@@ -28,12 +28,10 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Funcionario {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @EqualsAndHashCode.Include
     private UUID id;
 
     @Column(nullable = false, length = 11)
@@ -41,6 +39,8 @@ public class Funcionario {
 
     @Column(nullable = false)
     private String nome;
+
+    private String telefone;
 
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal salario;
@@ -78,10 +78,6 @@ public class Funcionario {
         if (this.criadoEm == null) {
             this.criadoEm = OffsetDateTime.now();
         }
-
-        if (TipoEspecializacao.GESTOR.equals(this.especializacao) && this.tokenAutorizacao == null) {
-            this.tokenAutorizacao = gerarTokenAleatorio(6);
-        }
     }
 
     @PrePersist
@@ -97,10 +93,8 @@ public class Funcionario {
                     "Funcionário sem especialização não pode ter login"
             );
         }
-        if (TipoEspecializacao.GESTOR.equals(especializacao) && tokenAutorizacao == null) {
-            throw new IllegalStateException(
-                    "Funcionário gerente deve possuir token de autorização"
-            );
+        if (TipoEspecializacao.GESTOR.equals(this.especializacao) && this.tokenAutorizacao == null) {
+            this.tokenAutorizacao = gerarTokenAleatorio(6);
         }
     }
 
