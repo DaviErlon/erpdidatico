@@ -49,41 +49,41 @@ public class Ceo {
     @Column(name = "senha_hash", nullable = false)
     private String senhaHash;
 
-    private int plano;
+    private TipoPlano plano;
 
     @Column(name = "criado_em", nullable = false, updatable = false)
     private OffsetDateTime criadoEm;
 
     @JsonIgnore
-    @OneToMany(mappedBy = "assinante",
+    @OneToMany(mappedBy = "ceo",
             cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE},
             orphanRemoval = true,
             fetch = FetchType.LAZY)
     private Set<Funcionario> funcionarios = new HashSet<>();
 
     @JsonIgnore
-    @OneToMany(mappedBy = "assinante",
+    @OneToMany(mappedBy = "ceo",
             cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE},
             orphanRemoval = true,
             fetch = FetchType.LAZY)
     private Set<Clientes> clientes = new HashSet<>();
 
     @JsonIgnore
-    @OneToMany(mappedBy = "assinante",
+    @OneToMany(mappedBy = "ceo",
             cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE},
             orphanRemoval = true,
             fetch = FetchType.LAZY)
     private Set<Clientes> fornecedores = new HashSet<>();
 
     @JsonIgnore
-    @OneToMany(mappedBy = "assinante",
+    @OneToMany(mappedBy = "ceo",
             cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE},
             orphanRemoval = true,
             fetch = FetchType.LAZY)
     private Set<Produto> produtos = new HashSet<>();
 
     @JsonIgnore
-    @OneToMany(mappedBy = "assinante",
+    @OneToMany(mappedBy = "ceo",
             cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE},
             orphanRemoval = true,
             fetch = FetchType.LAZY)

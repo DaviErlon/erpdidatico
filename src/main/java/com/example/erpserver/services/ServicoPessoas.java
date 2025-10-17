@@ -34,7 +34,7 @@ public class ServicoPessoas {
     // ---------- Adicionar Clientes ----------
     @Transactional
     public Optional<Clientes> addPessoa(PessoaDTO dto, String token) {
-        Long assinanteId = jwtUtil.extrairAdminId(token);
+        Long assinanteId = jwtUtil.extrairCeoId(token);
 
         return assinantesRepositorio.findById(assinanteId)
                 .map(assinante -> {
@@ -51,7 +51,7 @@ public class ServicoPessoas {
     // ---------- Atualizar Clientes ----------
     @Transactional
     public Optional<Clientes> atualizarPessoa(String token, Long id, PessoaDTO dto) {
-        Long assinanteId = jwtUtil.extrairAdminId(token);
+        Long assinanteId = jwtUtil.extrairCeoId(token);
 
         return repositorio.findByAssinanteIdAndId(assinanteId, id)
                 .map(pessoa -> {
@@ -71,7 +71,7 @@ public class ServicoPessoas {
             int pagina,
             int tamanho
     ) {
-        Long assinanteId = jwtUtil.extrairAdminId(token);
+        Long assinanteId = jwtUtil.extrairCeoId(token);
         Pageable pageable = PageRequest.of(pagina, tamanho);
         Specification<Clientes> spec = ClienteSpecifications.comFiltros(assinanteId, cpf, nome, fornecedor);
 
@@ -81,7 +81,7 @@ public class ServicoPessoas {
     // ---------- Remover Clientes ----------
     @Transactional
     public Optional<Clientes> removerPorId(String token, Long id) {
-        Long assinanteId = jwtUtil.extrairAdminId(token);
+        Long assinanteId = jwtUtil.extrairCeoId(token);
 
         return repositorio.findByAssinanteIdAndId(assinanteId, id)
                 .map(pessoa -> {

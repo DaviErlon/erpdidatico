@@ -35,7 +35,7 @@ public class ServicoProdutos {
     // ---------- Adicionar Produto ----------
     @Transactional
     public Optional<Produto> addProduto(ProdutoDTO dto, String token) {
-        Long assinanteId = jwtUtil.extrairAdminId(token);
+        Long assinanteId = jwtUtil.extrairCeoId(token);
 
         return assinantesRepositorio.findById(assinanteId)
                 .map(assinante -> {
@@ -54,7 +54,7 @@ public class ServicoProdutos {
     // ---------- Atualizar Produto ----------
     @Transactional
     public Optional<Produto> atualizarPorId(String token, Long produtoId, String nome, Double preco, int quantidade) {
-        Long assinanteId = jwtUtil.extrairAdminId(token);
+        Long assinanteId = jwtUtil.extrairCeoId(token);
 
         return repositorio.findByAssinanteIdAndId(assinanteId, produtoId)
                 .map(produto -> {
@@ -68,7 +68,7 @@ public class ServicoProdutos {
     // ---------- Movimentação de Estoque ----------
     @Transactional
     public Optional<Produto> addEstoquePendente(String token, Long produtoId, int quantidade) {
-        Long assinanteId = jwtUtil.extrairAdminId(token);
+        Long assinanteId = jwtUtil.extrairCeoId(token);
 
         return repositorio.findByAssinanteIdAndId(assinanteId, produtoId)
                 .map(produto -> {
@@ -79,7 +79,7 @@ public class ServicoProdutos {
 
     @Transactional
     public Optional<Produto> quitarEstoquePendente(String token, Long produtoId, int quantidade) {
-        Long assinanteId = jwtUtil.extrairAdminId(token);
+        Long assinanteId = jwtUtil.extrairCeoId(token);
 
         return repositorio.findByAssinanteIdAndId(assinanteId, produtoId)
                 .filter(produto -> produto.getEstoquePendente() >= quantidade)
@@ -92,7 +92,7 @@ public class ServicoProdutos {
 
     @Transactional
     public Optional<Produto> addEstoqueReservado(String token, Long produtoId, int quantidade) {
-        Long assinanteId = jwtUtil.extrairAdminId(token);
+        Long assinanteId = jwtUtil.extrairCeoId(token);
 
         return repositorio.findByAssinanteIdAndId(assinanteId, produtoId)
                 .filter(produto -> produto.getEstoqueDisponivel() >= quantidade)
@@ -106,7 +106,7 @@ public class ServicoProdutos {
 
     @Transactional
     public Optional<Produto> quitarEstoqueReservado(String token, Long produtoId, int quantidade) {
-        Long assinanteId = jwtUtil.extrairAdminId(token);
+        Long assinanteId = jwtUtil.extrairCeoId(token);
 
         return repositorio.findByAssinanteIdAndId(assinanteId, produtoId)
                 .filter(produto -> produto.getEstoqueReservado() >= quantidade)
@@ -127,7 +127,7 @@ public class ServicoProdutos {
             int tamanho
     ) {
 
-        Long assinanteId = jwtUtil.extrairAdminId(token);
+        Long assinanteId = jwtUtil.extrairCeoId(token);
         Pageable pageable = PageRequest.of(pagina, tamanho);
         Specification<Produto> spec = ProdutoSpecifications.comFiltros(assinanteId, nome, semEstoque, comEstoquePendente, comEstoqueReservado);
 
@@ -138,7 +138,7 @@ public class ServicoProdutos {
     // ---------- Remover Produto ----------
     @Transactional
     public Optional<Produto> removerPorId(String token, Long produtoId) {
-        Long assinanteId = jwtUtil.extrairAdminId(token);
+        Long assinanteId = jwtUtil.extrairCeoId(token);
 
         return repositorio.findByAssinanteIdAndId(assinanteId, produtoId)
                 .map(produto -> {

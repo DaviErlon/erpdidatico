@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import java.security.Key;
 import java.util.Date;
 import java.util.Set;
+import java.util.UUID;
 
 @Component
 public class JwtUtil {
@@ -27,7 +28,7 @@ public class JwtUtil {
     }
 
     // -------------------- Geração do token --------------------
-    public String gerarToken(String username, Set<String> roles, Long userId, Long adminId) {
+    public String gerarToken(String username, Set<String> roles, UUID userId, UUID adminId) {
         JwtBuilder builder = Jwts.builder()
                 .setSubject(username)
                 .claim("roles", String.join(",", roles))
@@ -55,13 +56,9 @@ public class JwtUtil {
         return Set.of(rolesString.split(","));
     }
 
-    public Long extrairUserId(String token) {
-        return ((Number) parseToken(token).getBody().get("userId")).longValue();
-    }
-
-    public Long extrairAdminId(String token) {
+    public UUID extrairCeoId(String token) {
         Object adminId = parseToken(token).getBody().get("adminId");
-        return adminId != null ? ((Number) adminId).longValue() : null;
+        return adminId != null ? UUID.fromString(adminId.toString()) : null;
     }
 
     // -------------------- Validação --------------------

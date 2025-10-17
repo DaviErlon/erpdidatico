@@ -2,15 +2,13 @@ package com.example.erpserver.DTOs;
 
 import com.example.erpserver.entities.TipoEspecializacao;
 import com.example.erpserver.entities.TipoPlano;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class RespostaDTO {
 
     private String token;

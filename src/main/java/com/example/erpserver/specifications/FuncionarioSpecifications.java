@@ -32,12 +32,12 @@ public class FuncionarioSpecifications {
     }
 
     public static Specification<Funcionario> comFiltros(
-            UUID assinanteId,
+            UUID ceoId,
             String cpf,
             String nome,
             TipoEspecializacao tipo
     ) {
-        Specification<Funcionario> spec = doAssinante(assinanteId);
+        Specification<Funcionario> spec = doAssinante(ceoId);
 
         if (cpf != null && !cpf.isEmpty()) {
             spec = spec.and(comCpf(cpf));

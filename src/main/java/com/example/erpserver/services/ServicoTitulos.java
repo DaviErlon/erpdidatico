@@ -53,7 +53,7 @@ public class ServicoTitulos {
     // ---------- Criar Título ----------
     @Transactional
     public Optional<Titulo> criarTitulo(String token, TituloDTO dto) {
-        Long assinanteId = jwtUtil.extrairAdminId(token);
+        Long assinanteId = jwtUtil.extrairCeoId(token);
 
         Ceo ceo = assinantesRepositorio.findById(assinanteId).orElse(null);
         Clientes clientes = pessoasRepositorio.findByAssinanteIdAndId(assinanteId, dto.getId()).orElse(null);
@@ -103,7 +103,7 @@ public class ServicoTitulos {
     // ---------- Remover Título ----------
     @Transactional
     public Optional<Titulo> removerTitulo(String token, Long tituloId) {
-        Long assinanteId = jwtUtil.extrairAdminId(token);
+        Long assinanteId = jwtUtil.extrairCeoId(token);
 
         return repositorio.findByAssinanteIdAndId(assinanteId, tituloId)
                 .map(titulo -> {
@@ -134,7 +134,7 @@ public class ServicoTitulos {
     // ---------- Marcar como Pago ----------
     @Transactional
     public Optional<Titulo> quitarTitulo(String token, Long tituloId) {
-        Long assinanteId = jwtUtil.extrairAdminId(token);
+        Long assinanteId = jwtUtil.extrairCeoId(token);
 
         return repositorio.findByAssinanteIdAndId(assinanteId, tituloId)
                 .filter(titulo -> !titulo.isPago())
@@ -162,7 +162,7 @@ public class ServicoTitulos {
     // ---------- Editar ----------
     @Transactional
     public Optional<Titulo> editarTitulo(String token, Long tituloId, TituloDTO dto) {
-        Long assinanteId = jwtUtil.extrairAdminId(token);
+        Long assinanteId = jwtUtil.extrairCeoId(token);
 
         Optional<Titulo> tituloOpt = repositorio.findByAssinanteIdAndId(assinanteId, tituloId)
                 .filter(titulo -> !titulo.isPago());
@@ -241,7 +241,7 @@ public class ServicoTitulos {
             int pagina,
             int tamanho) {
 
-        Long assinanteId = jwtUtil.extrairAdminId(token);
+        Long assinanteId = jwtUtil.extrairCeoId(token);
         Pageable pageable = PageRequest.of(pagina, tamanho);
         Specification<Titulo> spec = TituloSpecifications.comFiltros(assinanteId, cpf, nome, inicio, fim, pago, aReceber, aPagar);
 

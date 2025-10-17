@@ -1,8 +1,8 @@
 package com.example.erpserver.services;
 
 import com.example.erpserver.DTOs.RespostaDTO;
-import com.example.erpserver.repository.AssinantesRepositorio;
-import com.example.erpserver.repository.MembrosRepositorio;
+import com.example.erpserver.repository.CeoRepositorio;
+import com.example.erpserver.repository.FuncionariosRepositorio;
 import com.example.erpserver.security.JwtUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -13,65 +13,68 @@ import java.util.Set;
 @Service
 public class ServicoLogin {
 
-    private final AssinantesRepositorio assinantes;
-    private final MembrosRepositorio membros;
+    private final CeoRepositorio ceos;
+    private final FuncionariosRepositorio funcionarios;
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
 
-    public ServicoLogin(AssinantesRepositorio assinantes, MembrosRepositorio membros, JwtUtil jwtUtil, PasswordEncoder passwordEncoder) {
-        this.assinantes = assinantes;
-        this.membros = membros;
+    public ServicoLogin(CeoRepositorio ceos, FuncionariosRepositorio funcionarios, JwtUtil jwtUtil, PasswordEncoder passwordEncoder) {
+        this.ceos = ceos;
+        this.funcionarios = funcionarios;
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = passwordEncoder;
     }
 
     public Optional<RespostaDTO> autenticar(String email, String senha) {
         return autenticarAssinante(email, senha)
-                .or(() -> autenticarMembro(email, senha));
+                .or(() -> autenticarFuncionario(email, senha));
     }
 
     // --- Métodos auxiliares ---
     private Optional<RespostaDTO> autenticarAssinante(String email, String senha) {
 
-        return assinantes.findByEmail(email)
-                .filter(a -> passwordEncoder.matches(senha, a.getSenhaHash()))
-                .map(a -> {
+        return ceos.findByEmail(email)
+                .filter(c -> passwordEncoder.matches(senha, c.getSenhaHash()))
+                .map(c -> {
 
-                    RespostaDTO resposta = new RespostaDTO();
-
-                    resposta.setToken(jwtUtil.gerarToken(
-                            a.getEmail(),
-                            Set.of("ADMIN"),
-                            a.getId(),
-                            a.getId()
-                        )
-                    );
-                    resposta.setAssinante(true);
-                    resposta.setPlano(a.getPlano());
-                    resposta.setNome(a.getNome());
+                    RespostaDTO resposta = RespostaDTO
+                            .builder()
+                            .token(
+                                    jwtUtil.gerarToken(
+                                            c.getEmail(),
+                                            Set.of("ADMIN"),
+                                            c.getId(),
+                                            c.getId()
+                                    )
+                            )
+                            .assinante(true)
+                            .plano(c.getPlano())
+                            .nome(c.getNome())
+                            .token(c.getTokenAutorizacao())
+                            .build();
 
                     return resposta;
                 });
     }
 
-    private Optional<RespostaDTO> autenticarMembro(String email, String senha) {
-        return membros.findByEmail(email)
-                .filter(m -> passwordEncoder.matches(senha, m.getSenhaHash()))
-                .map(m -> {
-                    RespostaDTO resposta = new RespostaDTO();
-
-                    resposta.setToken(
-                            jwtUtil.gerarToken(
-                                    m.getEmail(),
-                                    Set.of("USER"),
-                                    m.getId(),
-                                    m.getCeo().getId()
+    private Optional<RespostaDTO> autenticarFuncionario(String email, String senha) {
+        return funcionarios.findByEmail(email)
+                .filter(f -> passwordEncoder.matches(senha, f.getSenhaHash()))
+                .map(f -> {
+                    RespostaDTO resposta = RespostaDTO
+                            .builder()
+                            .token(
+                                    jwtUtil.gerarToken(
+                                            f.getEmail(),
+                                            Set.of("USER"),
+                                            f.getId(),
+                                            f.getCeo().getId()
+                                    )
                             )
-                    );
-
-                    resposta.setAssinante(false);
-                    resposta.setPlano(m.getCeo().getPlano());
-                    resposta.setNome(m.getNome());
+                            .assinante(false)
+                            .plano(f.getCeo().getPlano())
+                            .nome(f.getNome())
+                            .build();
 
                     return resposta;
                 });
