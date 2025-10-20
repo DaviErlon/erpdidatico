@@ -1,123 +1,130 @@
 package com.example.erpserver.services;
 
+import com.example.erpserver.DTOs.PaginaDTO;
 import com.example.erpserver.entities.Produto;
 import com.example.erpserver.DTOs.ProdutoDTO;
-import com.example.erpserver.repository.AssinantesRepositorio;
+import com.example.erpserver.repository.CeoRepositorio;
 import com.example.erpserver.repository.ProdutosRepositorio;
 import com.example.erpserver.security.JwtUtil;
 import com.example.erpserver.specifications.ProdutoSpecifications;
 import jakarta.transaction.Transactional;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class ServicoProdutos {
 
-    private final AssinantesRepositorio assinantesRepositorio;
-    private final ProdutosRepositorio repositorio;
+    private final CeoRepositorio ceos;
+    private final ProdutosRepositorio produtos;
     private final JwtUtil jwtUtil;
 
     public ServicoProdutos(
-            ProdutosRepositorio repositorio,
+            ProdutosRepositorio produtos,
             JwtUtil jwtUtil,
-            AssinantesRepositorio assinantesRepositorio
+            CeoRepositorio ceos
     ) {
-        this.repositorio = repositorio;
+        this.produtos = produtos;
         this.jwtUtil = jwtUtil;
-        this.assinantesRepositorio = assinantesRepositorio;
+        this.ceos = ceos;
     }
 
     // ---------- Adicionar Produto ----------
     @Transactional
-    public Optional<Produto> addProduto(ProdutoDTO dto, String token) {
-        Long assinanteId = jwtUtil.extrairCeoId(token);
+    public Optional<Produto> addProduto(String token, ProdutoDTO dto) {
 
-        return assinantesRepositorio.findById(assinanteId)
-                .map(assinante -> {
-                    Produto produto = new Produto();
-                    produto.setNome(dto.getNome());
-                    produto.setPreco(dto.getPreco());
-                    produto.setEstoqueDisponivel(dto.getQuantidade());
-                    produto.setEstoquePendente(0);
-                    produto.setEstoqueReservado(0);
-                    produto.setCeo(assinante);
+        UUID ceoId = jwtUtil.extrairCeoId(token);
 
-                    return repositorio.save(produto);
+        return ceos.findById(ceoId)
+                .map(c -> {
+
+                    Produto novoProduto = Produto
+                            .builder()
+                            .nome(dto.getNome())
+                            .preco(dto.getPreco())
+                            .estoqueDisponivel(dto.getQuantidade())
+                            .ceo(c)
+                            .build();
+
+                    return produtos.save(novoProduto);
                 });
     }
 
     // ---------- Atualizar Produto ----------
     @Transactional
-    public Optional<Produto> atualizarPorId(String token, Long produtoId, String nome, Double preco, int quantidade) {
-        Long assinanteId = jwtUtil.extrairCeoId(token);
+    public Optional<Produto> atualizarProduto(String token, UUID produtoId, ProdutoDTO dto) {
+        UUID ceoId = jwtUtil.extrairCeoId(token);
 
-        return repositorio.findByAssinanteIdAndId(assinanteId, produtoId)
-                .map(produto -> {
-                    produto.setNome(nome);
-                    produto.setPreco(preco);
-                    produto.setEstoqueDisponivel(quantidade);
-                    return repositorio.save(produto);
+        return produtos.findByCeoIdAndId(ceoId, produtoId)
+                .map(p -> {
+                    p.setNome(dto.getNome());
+                    p.setPreco(dto.getPreco());
+
+                    return produtos.save(p);
                 });
     }
 
     // ---------- Movimentação de Estoque ----------
     @Transactional
-    public Optional<Produto> addEstoquePendente(String token, Long produtoId, int quantidade) {
-        Long assinanteId = jwtUtil.extrairCeoId(token);
+    public Optional<Produto> addEstoquePendente(String token, UUID produtoId, long quantidade) {
 
-        return repositorio.findByAssinanteIdAndId(assinanteId, produtoId)
-                .map(produto -> {
-                    produto.setEstoquePendente(produto.getEstoquePendente() + quantidade);
-                    return repositorio.save(produto);
+        UUID ceoId = jwtUtil.extrairCeoId(token);
+
+        return produtos.findByCeoIdAndId(ceoId, produtoId)
+                .map(p -> {
+                    p.setEstoquePendente(p.getEstoquePendente() + quantidade);
+                    return produtos.save(p);
                 });
     }
 
     @Transactional
-    public Optional<Produto> quitarEstoquePendente(String token, Long produtoId, int quantidade) {
-        Long assinanteId = jwtUtil.extrairCeoId(token);
+    public Optional<Produto> quitarEstoquePendente(String token, UUID produtoId, long quantidade) {
 
-        return repositorio.findByAssinanteIdAndId(assinanteId, produtoId)
-                .filter(produto -> produto.getEstoquePendente() >= quantidade)
-                .map(produto -> {
-                    produto.setEstoquePendente(produto.getEstoquePendente() - quantidade);
-                    produto.setEstoqueDisponivel(produto.getEstoqueDisponivel() + quantidade);
-                    return repositorio.save(produto);
+        UUID ceoId = jwtUtil.extrairCeoId(token);
+
+        return produtos.findByCeoIdAndId(ceoId, produtoId)
+                .filter(p -> p.getEstoquePendente() >= quantidade)
+                .map(p -> {
+                    p.setEstoquePendente(p.getEstoquePendente() - quantidade);
+                    p.setEstoqueDisponivel(p.getEstoqueDisponivel() + quantidade);
+                    return produtos.save(p);
                 });
     }
 
     @Transactional
-    public Optional<Produto> addEstoqueReservado(String token, Long produtoId, int quantidade) {
-        Long assinanteId = jwtUtil.extrairCeoId(token);
+    public Optional<Produto> addEstoqueReservado(String token, UUID produtoId, long quantidade) {
 
-        return repositorio.findByAssinanteIdAndId(assinanteId, produtoId)
-                .filter(produto -> produto.getEstoqueDisponivel() >= quantidade)
-                .map(produto -> {
-                    produto.setEstoqueReservado(produto.getEstoqueReservado() + quantidade);
-                    produto.setEstoqueDisponivel(produto.getEstoqueDisponivel() - quantidade);
+        UUID ceoId = jwtUtil.extrairCeoId(token);
 
-                    return repositorio.save(produto);
+        return produtos.findByCeoIdAndId(ceoId, produtoId)
+                .filter(p -> p.getEstoqueDisponivel() >= quantidade)
+                .map(p -> {
+                    p.setEstoqueReservado(p.getEstoqueReservado() + quantidade);
+                    p.setEstoqueDisponivel(p.getEstoqueDisponivel() - quantidade);
+
+                    return produtos.save(p);
                 });
     }
 
     @Transactional
-    public Optional<Produto> quitarEstoqueReservado(String token, Long produtoId, int quantidade) {
-        Long assinanteId = jwtUtil.extrairCeoId(token);
+    public Optional<Produto> quitarEstoqueReservado(String token, UUID produtoId, long quantidade) {
 
-        return repositorio.findByAssinanteIdAndId(assinanteId, produtoId)
-                .filter(produto -> produto.getEstoqueReservado() >= quantidade)
-                .map(produto -> {
-                    produto.setEstoqueReservado(produto.getEstoqueReservado() - quantidade);
-                    return repositorio.save(produto);
+        UUID ceoId = jwtUtil.extrairCeoId(token);
+
+        return produtos.findByCeoIdAndId(ceoId, produtoId)
+                .filter(p -> p.getEstoqueReservado() >= quantidade)
+                .map(p -> {
+                    p.setEstoqueReservado(p.getEstoqueReservado() - quantidade);
+                    return produtos.save(p);
                 });
     }
 
     // ---------- Buscar Produtos (Paginação) ----------
-    public Page<Produto> buscarProdutos(
+    public PaginaDTO<Produto> buscarProdutos(
             String token,
             String nome,
             Boolean semEstoque,
@@ -127,22 +134,22 @@ public class ServicoProdutos {
             int tamanho
     ) {
 
-        Long assinanteId = jwtUtil.extrairCeoId(token);
+        UUID ceoId = jwtUtil.extrairCeoId(token);
         Pageable pageable = PageRequest.of(pagina, tamanho);
-        Specification<Produto> spec = ProdutoSpecifications.comFiltros(assinanteId, nome, semEstoque, comEstoquePendente, comEstoqueReservado);
+        Specification<Produto> spec = ProdutoSpecifications.comFiltros(ceoId, nome, semEstoque, comEstoquePendente, comEstoqueReservado);
 
-        return repositorio.findAll(spec, pageable);
+        return PaginaDTO.from(produtos.findAll(spec, pageable));
     }
-
 
     // ---------- Remover Produto ----------
     @Transactional
-    public Optional<Produto> removerPorId(String token, Long produtoId) {
-        Long assinanteId = jwtUtil.extrairCeoId(token);
+    public Optional<Produto> removerPorId(String token, UUID produtoId) {
 
-        return repositorio.findByAssinanteIdAndId(assinanteId, produtoId)
+        UUID ceoId = jwtUtil.extrairCeoId(token);
+
+        return produtos.findByCeoIdAndId(ceoId, produtoId)
                 .map(produto -> {
-                    repositorio.delete(produto);
+                    produtos.delete(produto);
                     return produto;
                 });
     }

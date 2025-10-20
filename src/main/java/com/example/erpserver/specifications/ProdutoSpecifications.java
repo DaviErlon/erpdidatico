@@ -3,9 +3,11 @@ package com.example.erpserver.specifications;
 import com.example.erpserver.entities.Produto;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.util.UUID;
+
 public class ProdutoSpecifications {
 
-    public static Specification<Produto> doAssinante(Long assinanteId) {
+    public static Specification<Produto> doCeo(UUID assinanteId) {
         return (root, query, criteriaBuilder) ->
                 criteriaBuilder.equal(root.get("assinante").get("id"), assinanteId);
     }
@@ -34,7 +36,7 @@ public class ProdutoSpecifications {
     }
 
     public static Specification<Produto> comFiltros(
-            Long assinanteId,
+            UUID ceoId,
             String nome,
             Boolean semEstoqueFisico,
             Boolean comEstoquePendente,
@@ -42,7 +44,7 @@ public class ProdutoSpecifications {
     ) {
 
         return Specification.allOf(
-                doAssinante(assinanteId),
+                doCeo(ceoId),
                 comNome(nome),
                 semEstoqueFisico != null && semEstoqueFisico ? semEstoqueFisico() : null,
                 comEstoquePendente != null && comEstoquePendente ? comEstoquePendente() : null,

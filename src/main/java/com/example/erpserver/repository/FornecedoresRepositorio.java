@@ -1,6 +1,7 @@
 package com.example.erpserver.repository;
 
 import com.example.erpserver.entities.Fornecedor;
+import org.hibernate.validator.constraints.br.CPF;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,9 +14,8 @@ import java.util.UUID;
 @Repository
 public interface FornecedoresRepositorio extends JpaRepository<Fornecedor, UUID>, JpaSpecificationExecutor<Fornecedor> {
 
-    Page<Fornecedor> findByAssinanteIdAndNomeStartingWithIgnoreCase(UUID assinanteId, String prefixoNome, Pageable pageable);
+    Optional<Fornecedor> findByCeoIdAndCpf(UUID ceoId, String cpf);
 
-    Optional<Fornecedor> findByEmail(String email);
+    Optional<Fornecedor> findByCeoIdAndId(UUID ceoId, UUID id);
 
-    int countByAssinanteId(UUID assinanteId);
 }

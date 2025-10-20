@@ -11,7 +11,8 @@ import java.util.UUID;
 @Table(
         name = "produtos_dos_titulos",
         indexes = {
-                @Index(name = "idx_produto_titulo", columnList = "titulo_id")
+                @Index(name = "idx_produto_titulo", columnList = "titulo_id"),
+                @Index(name = "idx_produto_id", columnList = "produto_id")
         }
 )
 @Getter
@@ -32,7 +33,12 @@ public class ProdutosDosTitulos {
     private BigDecimal valor;
 
     @Column(nullable = false)
-    private int quantidade;
+    private long quantidade;
+
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "produto_id", nullable = false)
+    private Produto produto;
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

@@ -16,14 +16,17 @@ public class ServicoCadastro {
     private final CeoRepositorio ceos;
     private final PasswordEncoder passwordEncoder;
 
-    public ServicoCadastro(CeoRepositorio ceos, PasswordEncoder passwordEncoder){
+    public ServicoCadastro(
+            CeoRepositorio ceos,
+            PasswordEncoder passwordEncoder
+    ){
         this.ceos = ceos;
         this.passwordEncoder = passwordEncoder;
     }
 
     // ---------- Adicionar Ceo ----------
     @Transactional
-    public Optional<Ceo> addAssinante(CadastroDTO dto) {
+    public Optional<Ceo> addCeo(CadastroDTO dto) {
 
         if (ceos.findByEmail(dto.getEmail()).isPresent() || ceos.findByCpf(dto.getCpf()).isPresent()) {
             return Optional.empty();
@@ -35,7 +38,7 @@ public class ServicoCadastro {
                 .email(dto.getEmail())
                 .cpf(dto.getCpf())
                 .plano(dto.getPlano())
-                .senhaHash(passwordEncoder.encode((dto.getSenha())))
+                .senhaHash(passwordEncoder.encode(dto.getSenha()))
                 .build();
 
         return Optional.of(ceos.save(novo));

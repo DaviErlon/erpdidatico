@@ -1,6 +1,6 @@
 package com.example.erpserver.controllers;
 
-import com.example.erpserver.entities.Clientes;
+import com.example.erpserver.entities.Cliente;
 import com.example.erpserver.DTOs.PessoaDTO;
 import com.example.erpserver.services.ServicoPessoas;
 import jakarta.validation.Valid;
@@ -22,7 +22,7 @@ public class PessoasController {
 
     // ------ END POINT : GET --------
     @GetMapping
-    public Page<Clientes> buscarPessoas(
+    public Page<Cliente> buscarPessoas(
             @RequestHeader("Authorization") String authHeader,
             @RequestParam(required = false) String cpf,
             @RequestParam(required = false) String nome,
@@ -37,7 +37,7 @@ public class PessoasController {
     // ------ END POINT : POST --------
 
     @PostMapping
-    public ResponseEntity<Clientes> postPessoa(
+    public ResponseEntity<Cliente> postPessoa(
             @RequestHeader("Authorization") String authHeader,
             @Valid @RequestBody PessoaDTO dto
     ) {
@@ -51,7 +51,7 @@ public class PessoasController {
     // ------ END POINT : PUT --------
 
     @PutMapping("/{id}")
-    public ResponseEntity<Clientes> alterarPessoa(
+    public ResponseEntity<Cliente> alterarPessoa(
             @PathVariable Long id,
             @RequestHeader("Authorization") String authHeader,
             @Valid @RequestBody PessoaDTO dto
@@ -66,7 +66,7 @@ public class PessoasController {
     // ------ END POINT : REMOVE --------
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Clientes> deletarPessoa(
+    public ResponseEntity<Cliente> deletarPessoa(
             @PathVariable Long id,
             @RequestHeader("Authorization") String authHeader
     ) {

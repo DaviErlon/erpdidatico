@@ -11,5 +11,5 @@ import java.util.UUID;
 @Repository
 public interface TitulosRepositorio extends JpaRepository<Titulo, UUID>, JpaSpecificationExecutor<Titulo> {
 
-    Optional<Titulo> findByAssinanteIdAndId(UUID assinanteId, UUID tituloId);
+    Optional<Titulo> findByCeoIdAndId(UUID assinanteId, UUID tituloId);
 }

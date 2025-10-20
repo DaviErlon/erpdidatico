@@ -1,8 +1,6 @@
 package com.example.erpserver.repository;
 
-import com.example.erpserver.entities.Clientes;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import com.example.erpserver.entities.Cliente;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
@@ -11,12 +9,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface ClientesRepositorio extends JpaRepository<Clientes, UUID>, JpaSpecificationExecutor<Clientes> {
+public interface ClientesRepositorio extends JpaRepository<Cliente, UUID>, JpaSpecificationExecutor<Cliente> {
 
-    Page<Clientes> findByAssinanteIdAndNomeStartingWithIgnoreCase(UUID assinanteId, String prefixoNome, Pageable pageable);
+    Optional<Cliente> findByCeoIdAndId(UUID ceoId, UUID id);
 
-    Optional<Clientes> findByEmail(String email);
+    Optional<Cliente> findByCeoIdAndCpf(UUID ceoId, String cpf);
 
-    int countByAssinanteId(UUID assinanteId);
 }
 

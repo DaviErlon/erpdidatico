@@ -14,4 +14,5 @@ public interface ProdutosDosTitulosRepositorio extends JpaRepository<ProdutosDos
     List<ProdutosDosTitulos> findByTituloId(UUID tituloId);
 
     void deleteByTitulo(Titulo titulo);
+
 }

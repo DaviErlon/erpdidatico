@@ -24,6 +24,6 @@ public class ProdutoDTO {
 
     @Min(value = 0, message = "A quantidade em estoque não pode ser negativa")
     @Max(value = 100000000, message = "A quantidade não pode ser maior que 100 milhões")
-    private int quantidade;
+    private long quantidade;
 
 }

@@ -1,5 +1,6 @@
 package com.example.erpserver.services;
 
+import com.example.erpserver.DTOs.CadastroFuncionarioDTO;
 import com.example.erpserver.DTOs.FuncionarioDTO;
 import com.example.erpserver.DTOs.PaginaDTO;
 import com.example.erpserver.entities.Funcionario;
@@ -89,12 +90,45 @@ public class ServicoFuncionarios {
         return funcionarios.findById(funcionarioId)
                 .filter(f -> f.getCeo().getId().equals(ceoId))
                 .map(f -> {
+
                     f.setNome(dto.getNome());
                     f.setBonus(dto.getBonus());
                     f.setSalario(dto.getSalario());
                     f.setCpf(dto.getCpf());
                     f.setSetor(dto.getSetor());
                     f.setTelefone(dto.getTelefone());
+
+                    return funcionarios.save(f);
+                });
+    }
+
+    // ---------- Cadastrar Funcionario ----------
+    @Transactional
+    public Optional<Funcionario> promoverFuncionario(
+            String token,
+            UUID funcionarioId,
+            CadastroFuncionarioDTO dto
+    ){
+        UUID ceoId = jwtUtil.extrairCeoId(token);
+
+        if (funcionarios.findByEmail(dto.getEmail()).isPresent()) {
+            return Optional.empty();
+        }
+
+        return funcionarios.findById(funcionarioId)
+                .filter(f -> f.getCeo().getId().equals(ceoId))
+                .map(f -> {
+
+                    if(dto.getTipo() != null){
+                        f.setEmail(dto.getEmail());
+                        f.setSenhaHash(passwordEncoder.encode(dto.getSenha()));
+                        f.setTipo(dto.getTipo());
+                    } else {
+                        f.setEmail(null);
+                        f.setTipo(null);
+                        f.setSenhaHash(null);
+                    }
+
                     return funcionarios.save(f);
                 });
     }
@@ -108,8 +142,7 @@ public class ServicoFuncionarios {
 
         UUID ceoId = jwtUtil.extrairCeoId(token);
 
-        return funcionarios.findById(funcionarioId)
-                .filter(f -> f.getCeo().getId().equals(ceoId))
+        return funcionarios.findByCeoIdAndId(ceoId, funcionarioId)
                 .map(f -> {
                     funcionarios.delete(f);
                     return f;
@@ -121,6 +154,7 @@ public class ServicoFuncionarios {
             String token,
             String cpf,
             String nome,
+            String telefone,
             TipoEspecializacao tipo,
             int pagina,
             int tamanho
@@ -128,7 +162,7 @@ public class ServicoFuncionarios {
 
         UUID ceoID = jwtUtil.extrairCeoId(token);
         Pageable pageable = PageRequest.of(pagina, tamanho);
-        Specification<Funcionario> spec = FuncionarioSpecifications.comFiltros(ceoID, cpf, nome, tipo);
+        Specification<Funcionario> spec = FuncionarioSpecifications.comFiltros(ceoID, cpf, nome, telefone, tipo);
 
         return PaginaDTO.from(funcionarios.findAll(spec, pageable));
     }

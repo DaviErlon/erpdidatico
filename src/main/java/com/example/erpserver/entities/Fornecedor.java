@@ -13,7 +13,8 @@ import java.util.UUID;
         indexes = {
                 @Index(name = "idx_fornecedor_cpf", columnList = "cpf"),
                 @Index(name = "idx_fornecedor_cnpj", columnList = "cnpj"),
-                @Index(name = "idx_fornecedor_nome", columnList = "nome")
+                @Index(name = "idx_fornecedor_nome", columnList = "nome"),
+                @Index(name = "idx_fornecedor_ceo", columnList = "ceo_id")
         }
 )
 @Getter

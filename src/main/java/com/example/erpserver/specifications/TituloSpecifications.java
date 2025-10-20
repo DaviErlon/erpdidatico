@@ -1,22 +1,22 @@
 package com.example.erpserver.specifications;
 
-import com.example.erpserver.entities.Fornecedor;
 import com.example.erpserver.entities.Titulo;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public class TituloSpecifications {
 
-    public static Specification<Titulo> doAssinante(Long assinanteId) {
+    public static Specification<Titulo> doCeo(UUID ceoId) {
         return (root, query, criteriaBuilder) ->
-                criteriaBuilder.equal(root.get("assinante").get("id"), assinanteId);
+                criteriaBuilder.equal(root.get("assinante").get("id"), ceoId);
     }
 
     public static Specification<Titulo> comCpf(String cpf) {
         return (root, query, criteriaBuilder) ->
                 cpf == null || cpf.isEmpty() ? null : criteriaBuilder.like(
-                        root.get("fornecedor").get("cpf"),
+                        root.get("cpf"),
                         cpf + "%"
                 );
     }
@@ -24,7 +24,7 @@ public class TituloSpecifications {
     public static Specification<Titulo> comCnpj(String cnpj) {
         return (root, query, criteriaBuilder) ->
                 cnpj == null || cnpj.isEmpty() ? null : criteriaBuilder.like(
-                        root.get("fornecedor").get("cnpj"),
+                        root.get("cnpj"),
                         cnpj + "%"
                 );
     }
@@ -32,7 +32,7 @@ public class TituloSpecifications {
     public static Specification<Titulo> comNome(String nome) {
         return (root, query, criteriaBuilder) ->
                 nome == null || nome.isEmpty() ? null : criteriaBuilder.like(
-                        criteriaBuilder.lower(root.get("pessoa").get("nome")),
+                        criteriaBuilder.lower(root.get("nome")),
                         "%" + nome.toLowerCase() + "%"
                 );
     }
@@ -57,13 +57,13 @@ public class TituloSpecifications {
         return (root, query, criteriaBuilder) -> {
             if (recebido == null) return null;
             return recebido ?
-                    criteriaBuilder.isTrue(root.get("recebido")) :
-                    criteriaBuilder.isFalse(root.get("recebido"));
+                    criteriaBuilder.isTrue(root.get("recebidoNoEstoque")) :
+                    criteriaBuilder.isFalse(root.get("recebidoNoEstoque"));
         };
     }
 
     public static Specification<Titulo> comFiltros(
-            Long assinanteId,
+            UUID ceoId,
             String cpf,
             String cnpj,
             String nome,
@@ -74,7 +74,7 @@ public class TituloSpecifications {
     ) {
 
         return Specification.allOf(
-                doAssinante(assinanteId),
+                doCeo(ceoId),
                 comCpf(cpf),
                 comCnpj(cnpj),
                 comNome(nome),

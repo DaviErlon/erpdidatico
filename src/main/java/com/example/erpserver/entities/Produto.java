@@ -14,7 +14,9 @@ import java.util.UUID;
 @Table(
         name = "produtos",
         indexes = {
-                @Index(name = "idx_produto_nome", columnList = "nome")
+                @Index(name = "idx_produto_nome", columnList = "nome"),
+                @Index(name = "idx_produto_ceo", columnList = "ceo_id"),
+                @Index(name = "idx_produto_ceo", columnList = "ceo_id"),
         }
 )
 @Getter
@@ -35,13 +37,13 @@ public class Produto {
     private BigDecimal preco;
 
     @Column(nullable = false)
-    private int estoqueDisponivel;
+    private long estoqueDisponivel;
 
     @Column(nullable = false)
-    private int estoquePendente;
+    private long estoquePendente;
 
     @Column(nullable = false)
-    private int estoqueReservado;
+    private long estoqueReservado;
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

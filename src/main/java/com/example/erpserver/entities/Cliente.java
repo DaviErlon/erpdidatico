@@ -12,7 +12,8 @@ import java.util.UUID;
         name = "clientes",
         indexes = {
                 @Index(name = "idx_cliente_nome", columnList = "nome"),
-                @Index(name = "idx_cliente_cpf", columnList = "cpf")
+                @Index(name = "idx_cliente_cpf", columnList = "cpf"),
+                @Index(name = "idx_cliente_ceo", columnList = "ceo_id")
         }
 )
 @Getter
@@ -20,7 +21,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Clientes {
+public class Cliente {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

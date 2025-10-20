@@ -19,5 +19,5 @@ public class ItemProdutoDTO {
     private UUID produtoId;
 
     @Min(value = 1, message = "Quantidade deve ser pelo menos 1")
-    private int quantidade;
+    private long quantidade;
 }

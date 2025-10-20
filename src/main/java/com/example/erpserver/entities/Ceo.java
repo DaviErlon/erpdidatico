@@ -1,7 +1,6 @@
 package com.example.erpserver.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -13,13 +12,13 @@ import java.util.UUID;
 
 @Entity
 @Table(
-        name = "assinantes",
+        name = "ceos",
         uniqueConstraints = {
                 @UniqueConstraint(columnNames = {"email"})
         },
         indexes = {
-                @Index(name = "idx_assinante_cpf", columnList = "cpf"),
-                @Index(name = "idx_assinante_email", columnList = "email")
+                @Index(name = "idx_ceo_cpf", columnList = "cpf"),
+                @Index(name = "idx_ceo_email", columnList = "email")
         }
 )
 @Getter
@@ -66,14 +65,14 @@ public class Ceo {
             cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE},
             orphanRemoval = true,
             fetch = FetchType.LAZY)
-    private Set<Clientes> clientes = new HashSet<>();
+    private Set<Cliente> clientes = new HashSet<>();
 
     @JsonIgnore
     @OneToMany(mappedBy = "ceo",
             cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE},
             orphanRemoval = true,
             fetch = FetchType.LAZY)
-    private Set<Clientes> fornecedores = new HashSet<>();
+    private Set<Fornecedor> fornecedores = new HashSet<>();
 
     @JsonIgnore
     @OneToMany(mappedBy = "ceo",

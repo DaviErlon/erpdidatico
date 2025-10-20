@@ -49,7 +49,7 @@ public class TitulosController {
     ) {
         String token = authHeader.replace("Bearer ", "");
 
-        return servico.criarTitulo(token, dto)
+        return servico.addTitulo(token, dto)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.badRequest().build());
     }

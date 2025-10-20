@@ -19,8 +19,9 @@ public class TituloDTO {
     // está associado ou não a um cliente ou fornecedor
     private UUID id;
 
+    private boolean pagarOuReceber;
+
     @NotNull(message = "A lista de produtos não pode ser nula")
     @Size(min = 1, message = "O título deve ter pelo menos 1 produto")
     private List<ItemProdutoDTO> produtos;
-
 }

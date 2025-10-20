@@ -1,8 +1,6 @@
 package com.example.erpserver.repository;
 
 import com.example.erpserver.entities.Funcionario;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
@@ -18,6 +16,6 @@ public interface FuncionariosRepositorio extends JpaRepository<Funcionario, UUID
 
     long countByCeoId(UUID ceoId);
 
-    void deleteByCeoIdAndId(UUID ceoId, UUID id);
+    Optional<Funcionario> findByCeoIdAndId(UUID ceoId, UUID funcionarioId);
 }
 

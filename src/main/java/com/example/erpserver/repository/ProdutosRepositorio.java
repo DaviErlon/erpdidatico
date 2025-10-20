@@ -11,7 +11,7 @@ import java.util.UUID;
 @Repository
 public interface ProdutosRepositorio extends JpaRepository<Produto, UUID>, JpaSpecificationExecutor<Produto> {
 
-    Optional<Produto> findByAssinanteIdAndId(UUID assinanteId, UUID produtoId);
+    Optional<Produto> findByCeoIdAndId(UUID ceoId, UUID produtoId);
 }
 
 

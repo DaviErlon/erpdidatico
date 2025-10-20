@@ -20,7 +20,7 @@ import java.util.UUID;
         indexes = {
                 @Index(name = "idx_funcionario_setor", columnList = "setor"),
                 @Index(name = "idx_funcionario_especializacao", columnList = "especializacao"),
-                @Index(name = "idx_funcionario_assinante", columnList = "assinante_id")
+                @Index(name = "idx_funcionario_ceo", columnList = "ceo_id"),
         }
 )
 @Getter
@@ -65,7 +65,7 @@ public class Funcionario {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = true)
-    private TipoEspecializacao especializacao;
+    private TipoEspecializacao tipo;
 
     @Column(name = "token_autorizacao", unique = true, length = 6)
     private String tokenAutorizacao;
@@ -80,21 +80,13 @@ public class Funcionario {
         }
     }
 
-    @PrePersist
     @PreUpdate
     private void validarEspecializacaoComLogin() {
-        if (especializacao != null && (email == null || senhaHash == null)) {
-            throw new IllegalStateException(
-                    "Funcionário com especialização deve possuir email e senha para login"
-            );
-        }
-        if (especializacao == null && (email != null || senhaHash != null)) {
-            throw new IllegalStateException(
-                    "Funcionário sem especialização não pode ter login"
-            );
-        }
-        if (TipoEspecializacao.GESTOR.equals(this.especializacao) && this.tokenAutorizacao == null) {
+        if (TipoEspecializacao.GESTOR.equals(this.tipo) && this.tokenAutorizacao == null) {
             this.tokenAutorizacao = gerarTokenAleatorio(6);
+        }
+        if(!TipoEspecializacao.GESTOR.equals(this.tipo) && this.tokenAutorizacao != null){
+            this.tokenAutorizacao = null;
         }
     }
 

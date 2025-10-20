@@ -8,9 +8,14 @@ import java.util.UUID;
 
 public class FuncionarioSpecifications {
 
-    public static Specification<Funcionario> doAssinante(UUID assinanteId) {
+    public static Specification<Funcionario> doCeo(UUID ceoId) {
         return (root, query, criteriaBuilder) ->
-                criteriaBuilder.equal(root.get("assinante").get("id"), assinanteId);
+                criteriaBuilder.equal(root.get("assinante").get("id"), ceoId);
+    }
+
+    public static Specification<Funcionario> comTelefone(String telefone) {
+        return (root, query, criteriaBuilder) ->
+                telefone == null ? null : criteriaBuilder.like(root.get("telefone"), telefone + "%");
     }
 
     public static Specification<Funcionario> comCpf(String cpf) {
@@ -35,9 +40,10 @@ public class FuncionarioSpecifications {
             UUID ceoId,
             String cpf,
             String nome,
+            String telefone,
             TipoEspecializacao tipo
     ) {
-        Specification<Funcionario> spec = doAssinante(ceoId);
+        Specification<Funcionario> spec = doCeo(ceoId);
 
         if (cpf != null && !cpf.isEmpty()) {
             spec = spec.and(comCpf(cpf));
@@ -49,6 +55,10 @@ public class FuncionarioSpecifications {
 
         if (tipo != null) {
             spec = spec.and(comEspecializacao(tipo));
+        }
+
+        if(telefone != null) {
+            spec = spec.and(comTelefone(telefone));
         }
 
         return spec;

@@ -1,5 +1,6 @@
 package com.example.erpserver.DTOs;
 
+import com.example.erpserver.entities.TipoPlano;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -30,5 +31,5 @@ public class CadastroDTO {
 
     @Min(value = 0, message = "Tipo inválido")
     @Max(value = 2, message = "Tipo inválido")
-    private int plano;
+    private TipoPlano plano;
 }

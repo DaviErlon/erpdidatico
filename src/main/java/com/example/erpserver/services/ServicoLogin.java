@@ -26,12 +26,12 @@ public class ServicoLogin {
     }
 
     public Optional<RespostaDTO> autenticar(String email, String senha) {
-        return autenticarAssinante(email, senha)
+        return autenticarCeo(email, senha)
                 .or(() -> autenticarFuncionario(email, senha));
     }
 
     // --- Métodos auxiliares ---
-    private Optional<RespostaDTO> autenticarAssinante(String email, String senha) {
+    private Optional<RespostaDTO> autenticarCeo(String email, String senha) {
 
         return ceos.findByEmail(email)
                 .filter(c -> passwordEncoder.matches(senha, c.getSenhaHash()))
@@ -42,7 +42,7 @@ public class ServicoLogin {
                             .token(
                                     jwtUtil.gerarToken(
                                             c.getEmail(),
-                                            Set.of("ADMIN"),
+                                            Set.of("CEO"),
                                             c.getId(),
                                             c.getId()
                                     )
@@ -66,7 +66,7 @@ public class ServicoLogin {
                             .token(
                                     jwtUtil.gerarToken(
                                             f.getEmail(),
-                                            Set.of("USER"),
+                                            Set.of(f.getTipo().name()),
                                             f.getId(),
                                             f.getCeo().getId()
                                     )
