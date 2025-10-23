@@ -17,7 +17,8 @@ import java.util.UUID;
                 @Index(name = "idx_titulo_ceo", columnList = "ceo_id"),
                 @Index(name = "idx_titulo_cliente", columnList = "cliente_id"),
                 @Index(name = "idx_titulo_fornecedor", columnList = "fornecedor_id"),
-                @Index(name = "idx_titulo_funcionario", columnList = "funcionario_id")
+                @Index(name = "idx_titulo_funcionario", columnList = "funcionario_id"),
+                @Index(name = "idx_titulo_emissor", columnList = "emissor_id")
         }
 )
 @Getter
@@ -37,8 +38,10 @@ public class Titulo {
     @Column(nullable = false)
     private boolean pago = false;
 
+    private boolean recebidoNoEstoque;
+
     @Column(nullable = false)
-    private boolean recebidoNoEstoque = false;
+    private boolean aprovado = false;
 
     @Column(length = 11)
     private String cpf;
@@ -71,6 +74,10 @@ public class Titulo {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "funcionario_id")
     private Funcionario funcionario;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "emissor_id")
+    private Funcionario emissor;
 
     @OneToMany(mappedBy = "titulo",
             cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE},

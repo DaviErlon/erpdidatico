@@ -1,10 +1,11 @@
 package com.example.erpserver.services;
 
 import com.example.erpserver.DTOs.PaginaDTO;
+import com.example.erpserver.entities.Ceo;
 import com.example.erpserver.entities.Produto;
 import com.example.erpserver.DTOs.ProdutoDTO;
-import com.example.erpserver.repository.CeoRepositorio;
-import com.example.erpserver.repository.ProdutosRepositorio;
+import com.example.erpserver.repositories.CeoRepositorio;
+import com.example.erpserver.repositories.ProdutosRepositorio;
 import com.example.erpserver.security.JwtUtil;
 import com.example.erpserver.specifications.ProdutoSpecifications;
 import jakarta.transaction.Transactional;
@@ -35,23 +36,18 @@ public class ServicoProdutos {
 
     // ---------- Adicionar Produto ----------
     @Transactional
-    public Optional<Produto> addProduto(String token, ProdutoDTO dto) {
+    public Optional<Produto> adicionarProduto(String token, ProdutoDTO dto) {
 
         UUID ceoId = jwtUtil.extrairCeoId(token);
 
-        return ceos.findById(ceoId)
-                .map(c -> {
+        Produto novoProduto = Produto.builder()
+                .nome(dto.getNome())
+                .preco(dto.getPreco())
+                .estoqueDisponivel(dto.getQuantidade())
+                .ceo(Ceo.builder().id(ceoId).build())
+                .build();
 
-                    Produto novoProduto = Produto
-                            .builder()
-                            .nome(dto.getNome())
-                            .preco(dto.getPreco())
-                            .estoqueDisponivel(dto.getQuantidade())
-                            .ceo(c)
-                            .build();
-
-                    return produtos.save(novoProduto);
-                });
+        return Optional.of(produtos.save(novoProduto));
     }
 
     // ---------- Atualizar Produto ----------
@@ -69,58 +65,52 @@ public class ServicoProdutos {
     }
 
     // ---------- Movimentação de Estoque ----------
-    @Transactional
-    public Optional<Produto> addEstoquePendente(String token, UUID produtoId, long quantidade) {
-
+    // Helper para atualizar produto
+    private Optional<Produto> atualizarProduto(String token, UUID produtoId, java.util.function.Consumer<Produto> atualizacao) {
         UUID ceoId = jwtUtil.extrairCeoId(token);
-
         return produtos.findByCeoIdAndId(ceoId, produtoId)
                 .map(p -> {
-                    p.setEstoquePendente(p.getEstoquePendente() + quantidade);
-                    return produtos.save(p);
+                    atualizacao.accept(p);
+                    return p; // não precisa chamar save() se está em @Transactional
                 });
+    }
+
+    // ---------- Movimentação de Estoque ----------
+    @Transactional
+    public Optional<Produto> addEstoquePendente(String token, UUID produtoId, long quantidade) {
+        return atualizarProduto(token, produtoId, p ->
+                p.setEstoquePendente(p.getEstoquePendente() + quantidade)
+        );
     }
 
     @Transactional
     public Optional<Produto> quitarEstoquePendente(String token, UUID produtoId, long quantidade) {
+        return atualizarProduto(token, produtoId, p -> {
 
-        UUID ceoId = jwtUtil.extrairCeoId(token);
+            if (p.getEstoquePendente() < quantidade) return;
 
-        return produtos.findByCeoIdAndId(ceoId, produtoId)
-                .filter(p -> p.getEstoquePendente() >= quantidade)
-                .map(p -> {
-                    p.setEstoquePendente(p.getEstoquePendente() - quantidade);
-                    p.setEstoqueDisponivel(p.getEstoqueDisponivel() + quantidade);
-                    return produtos.save(p);
-                });
+            p.setEstoquePendente(p.getEstoquePendente() - quantidade);
+            p.setEstoqueDisponivel(p.getEstoqueDisponivel() + quantidade);
+        });
     }
 
     @Transactional
     public Optional<Produto> addEstoqueReservado(String token, UUID produtoId, long quantidade) {
+        return atualizarProduto(token, produtoId, p -> {
 
-        UUID ceoId = jwtUtil.extrairCeoId(token);
+            if (p.getEstoqueDisponivel() < quantidade) return;
 
-        return produtos.findByCeoIdAndId(ceoId, produtoId)
-                .filter(p -> p.getEstoqueDisponivel() >= quantidade)
-                .map(p -> {
-                    p.setEstoqueReservado(p.getEstoqueReservado() + quantidade);
-                    p.setEstoqueDisponivel(p.getEstoqueDisponivel() - quantidade);
-
-                    return produtos.save(p);
-                });
+            p.setEstoqueReservado(p.getEstoqueReservado() + quantidade);
+            p.setEstoqueDisponivel(p.getEstoqueDisponivel() - quantidade);
+        });
     }
 
     @Transactional
     public Optional<Produto> quitarEstoqueReservado(String token, UUID produtoId, long quantidade) {
-
-        UUID ceoId = jwtUtil.extrairCeoId(token);
-
-        return produtos.findByCeoIdAndId(ceoId, produtoId)
-                .filter(p -> p.getEstoqueReservado() >= quantidade)
-                .map(p -> {
-                    p.setEstoqueReservado(p.getEstoqueReservado() - quantidade);
-                    return produtos.save(p);
-                });
+        return atualizarProduto(token, produtoId, p -> {
+            if (p.getEstoqueReservado() < quantidade) return;
+            p.setEstoqueReservado(p.getEstoqueReservado() - quantidade);
+        });
     }
 
     // ---------- Buscar Produtos (Paginação) ----------
@@ -143,8 +133,10 @@ public class ServicoProdutos {
 
     // ---------- Remover Produto ----------
     @Transactional
-    public Optional<Produto> removerPorId(String token, UUID produtoId) {
-
+    public Optional<Produto> removerProduto(
+            String token,
+            UUID produtoId
+    ) {
         UUID ceoId = jwtUtil.extrairCeoId(token);
 
         return produtos.findByCeoIdAndId(ceoId, produtoId)

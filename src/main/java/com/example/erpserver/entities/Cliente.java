@@ -41,7 +41,7 @@ public class Cliente {
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "assinante_id", nullable = false)
+    @JoinColumn(name = "ceo_id", nullable = false)
     private Ceo ceo;
 
     @PrePersist

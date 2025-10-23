@@ -3,18 +3,19 @@ package com.example.erpserver.services;
 import com.example.erpserver.DTOs.CadastroFuncionarioDTO;
 import com.example.erpserver.DTOs.FuncionarioDTO;
 import com.example.erpserver.DTOs.PaginaDTO;
+import com.example.erpserver.entities.Ceo;
 import com.example.erpserver.entities.Funcionario;
 import com.example.erpserver.entities.TipoEspecializacao;
 import com.example.erpserver.entities.TipoPlano;
-import com.example.erpserver.repository.CeoRepositorio;
-import com.example.erpserver.repository.FuncionariosRepositorio;
+import com.example.erpserver.repositories.CeoRepositorio;
+import com.example.erpserver.repositories.FuncionariosRepositorio;
 import com.example.erpserver.security.JwtUtil;
 import com.example.erpserver.specifications.FuncionarioSpecifications;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -26,55 +27,52 @@ public class ServicoFuncionarios {
     private final FuncionariosRepositorio funcionarios;
     private final CeoRepositorio ceos;
     private final JwtUtil jwtUtil;
-    private final BCryptPasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
     public ServicoFuncionarios(
             FuncionariosRepositorio funcionarios,
             CeoRepositorio ceos,
-            JwtUtil jwtUtil
+            JwtUtil jwtUtil,
+            PasswordEncoder passwordEncoder
     ) {
         this.funcionarios = funcionarios;
         this.ceos = ceos;
         this.jwtUtil = jwtUtil;
-        this.passwordEncoder = new BCryptPasswordEncoder();
+        this.passwordEncoder = passwordEncoder;
     }
 
     // ---------- Adicionar Funcionario ----------
     @Transactional
-    public Optional<Funcionario> addFuncionario(
+    public Optional<Funcionario> adicionarFuncionario(
             String token,
             FuncionarioDTO dto
     ) {
-
         UUID ceoId = jwtUtil.extrairCeoId(token);
+        TipoPlano plano = ceos.findById(ceoId).map(Ceo::getPlano).orElse(TipoPlano.BASICO);
 
-        return ceos.findById(ceoId)
-                .flatMap(c -> {
+        long limite = switch (plano) {
+            case COMPLETO -> 20;
+            case INTERMEDIARIO -> 10;
+            case BASICO -> 5;
+        };
 
-                    int limite = switch (c.getPlano()) {
-                        case TipoPlano.COMPLETO -> 20;
-                        case TipoPlano.INTERMEDIARIO -> 10;
-                        default -> 5;
-                    };
+        if (funcionarios.countByCeoId(ceoId) >= limite ||
+                funcionarios.existsByCeoIdAndCpf(ceoId, dto.getCpf())) {
+            return Optional.empty();
+        }
 
-                    long membrosAtuais = funcionarios.countByCeoId(ceoId);
-                    if (membrosAtuais >= limite) {
-                        return Optional.empty();
-                    }
+        Funcionario funcionario = Funcionario.builder()
+                .nome(dto.getNome())
+                .ceo(Ceo.builder().id(ceoId).build())
+                .cpf(dto.getCpf())
+                .salario(dto.getSalario())
+                .bonus(dto.getBonus())
+                .setor(dto.getSetor())
+                .telefone(dto.getTelefone())
+                .build();
 
-                    Funcionario funcionario = Funcionario
-                            .builder()
-                            .nome(dto.getNome())
-                            .ceo(c)
-                            .cpf(dto.getCpf())
-                            .salario(dto.getSalario())
-                            .bonus(dto.getBonus())
-                            .setor(dto.getSetor())
-                            .telefone(dto.getTelefone())
-                            .build();
+        return Optional.of(funcionarios.save(funcionario));
 
-                    return Optional.of(funcionarios.save(funcionario));
-                });
     }
 
     // ---------- Editar Funcionario ----------
@@ -87,8 +85,13 @@ public class ServicoFuncionarios {
 
         UUID ceoId = jwtUtil.extrairCeoId(token);
 
-        return funcionarios.findById(funcionarioId)
-                .filter(f -> f.getCeo().getId().equals(ceoId))
+        if (funcionarios.findByCeoIdAndCpf(ceoId, dto.getCpf())
+                .filter(f -> !f.getId().equals(funcionarioId))
+                .isPresent()) {
+            return Optional.empty(); // CPF já usado
+        }
+
+        return funcionarios.findByCeoIdAndId(ceoId,funcionarioId)
                 .map(f -> {
 
                     f.setNome(dto.getNome());
@@ -102,7 +105,7 @@ public class ServicoFuncionarios {
                 });
     }
 
-    // ---------- Cadastrar Funcionario ----------
+    // ---------- Promover Funcionario ----------
     @Transactional
     public Optional<Funcionario> promoverFuncionario(
             String token,
@@ -150,7 +153,7 @@ public class ServicoFuncionarios {
     }
 
     // ---------- Buscar Funcionario (Paginação) ----------
-    public PaginaDTO<Funcionario> buscarPorNome(
+    public PaginaDTO<Funcionario> buscarFuncionarios(
             String token,
             String cpf,
             String nome,

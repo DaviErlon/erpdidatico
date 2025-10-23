@@ -25,8 +25,8 @@ public class CadastroController {
 
     //------- POST --------
     @PostMapping
-    public ResponseEntity<Ceo> addAssinante(@RequestBody @Valid CadastroDTO dto) {
-        return servico.addCeo(dto)
+    public ResponseEntity<Ceo> addCeo(@RequestBody @Valid CadastroDTO dto) {
+        return servico.adicionarCeo(dto)
                 .map(ceo -> ResponseEntity.status(HttpStatus.CREATED).body(ceo))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.CONFLICT).build());
     }

@@ -2,9 +2,10 @@ package com.example.erpserver.services;
 
 import com.example.erpserver.DTOs.FornecedorDTO;
 import com.example.erpserver.DTOs.PaginaDTO;
+import com.example.erpserver.entities.Ceo;
 import com.example.erpserver.entities.Fornecedor;
-import com.example.erpserver.repository.CeoRepositorio;
-import com.example.erpserver.repository.FornecedoresRepositorio;
+import com.example.erpserver.repositories.CeoRepositorio;
+import com.example.erpserver.repositories.FornecedoresRepositorio;
 import com.example.erpserver.security.JwtUtil;
 import com.example.erpserver.specifications.FornecedorSpecifications;
 import jakarta.transaction.Transactional;
@@ -35,32 +36,40 @@ public class ServicoFornecedores {
 
     // ---------- Adicionar Fornecedor ----------
     @Transactional
-    public Optional<Fornecedor> addFornecedor(String token, FornecedorDTO dto) {
+    public Optional<Fornecedor> adicionarFornecedor(String token, FornecedorDTO dto) {
         UUID ceoId = jwtUtil.extrairCeoId(token);
 
-        return ceos.findById(ceoId)
-                .flatMap(ceo -> {
+        if (fornecedores.existsByCeoIdAndCpf(ceoId, dto.getCpf()) || fornecedores.existsByCeoIdAndCnpj(ceoId, dto.getCnpj())) {
+            return Optional.empty();
+        }
 
-                    if (fornecedores.findByCeoIdAndCpf(ceoId, dto.getCpf()).isPresent()) {
-                        return Optional.empty();
-                    }
+        Fornecedor novoFornecedor = Fornecedor.builder()
+                .ceo(Ceo.builder().id(ceoId).build())
+                .nome(dto.getNome())
+                .cpf(dto.getCpf())
+                .telefone(dto.getTelefone())
+                .build();
 
-                    Fornecedor novoFornecedor = Fornecedor.builder()
-                            .ceo(ceo)
-                            .nome(dto.getNome())
-                            .cpf(dto.getCpf())
-                            .telefone(dto.getTelefone())
-                            .build();
+        return Optional.of(fornecedores.save(novoFornecedor));
 
-                    return Optional.of(fornecedores.save(novoFornecedor));
-                });
     }
-
 
     // ---------- Atualizar Fornecedor ----------
     @Transactional
     public Optional<Fornecedor> atualizarCliente(String token, UUID id, FornecedorDTO dto) {
         UUID ceoId = jwtUtil.extrairCeoId(token);
+
+        if (fornecedores.findByCeoIdAndCpf(ceoId, dto.getCpf())
+                .filter(f -> !f.getId().equals(id))
+                .isPresent()) {
+            return Optional.empty(); // CPF já usado
+        }
+
+        if (fornecedores.findByCeoIdAndCnpj(ceoId, dto.getCnpj())
+                .filter(f -> !f.getId().equals(id))
+                .isPresent()) {
+            return Optional.empty(); // CPF já usado
+        }
 
         return fornecedores.findByCeoIdAndId(ceoId, id)
                 .map(f -> {
@@ -89,7 +98,7 @@ public class ServicoFornecedores {
         return PaginaDTO.from(fornecedores.findAll(spec, pageable));
     }
 
-    // ---------- Remover Cliente ----------
+    // ---------- Remover Fornecodor ----------
     @Transactional
     public Optional<Fornecedor> removerFornecedor(
             String token,
@@ -99,7 +108,7 @@ public class ServicoFornecedores {
 
         return fornecedores.findByCeoIdAndId(ceoId, fornecedorId)
                 .map(f -> {
-                    fornecedores.deleteById(fornecedorId);
+                    fornecedores.delete(f);
                     return f;
                 });
     }

@@ -7,32 +7,30 @@ import java.util.UUID;
 
 public class ProdutoSpecifications {
 
-    public static Specification<Produto> doCeo(UUID assinanteId) {
+    public static Specification<Produto> doCeo(UUID ceoId) {
         return (root, query, criteriaBuilder) ->
-                criteriaBuilder.equal(root.get("assinante").get("id"), assinanteId);
+                criteriaBuilder.equal(root.get("ceo").get("id"), ceoId);
     }
 
     public static Specification<Produto> comNome(String nome) {
         return (root, query, criteriaBuilder) ->
-                nome == null || nome.isEmpty() ? null : criteriaBuilder.like(
-                        criteriaBuilder.lower(root.get("nome")),
-                        "%" + nome.toLowerCase() + "%"
-                );
+                (nome == null || nome.isEmpty()) ? null :
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("nome")), "%" + nome.toLowerCase() + "%");
     }
 
-    public static Specification<Produto> semEstoqueFisico() {
+    public static Specification<Produto> semEstoqueFisico(Boolean aplicar) {
         return (root, query, criteriaBuilder) ->
-                criteriaBuilder.equal(root.get("estoqueDisponivel"), 0);
+                (aplicar != null && aplicar) ? criteriaBuilder.equal(root.get("estoqueDisponivel"), 0) : null;
     }
 
-    public static Specification<Produto> comEstoquePendente() {
+    public static Specification<Produto> comEstoquePendente(Boolean aplicar) {
         return (root, query, criteriaBuilder) ->
-                criteriaBuilder.notEqual(root.get("estoquePendente"), 0);
+                (aplicar != null && aplicar) ? criteriaBuilder.notEqual(root.get("estoquePendente"), 0) : null;
     }
 
-    public static Specification<Produto> comEstoqueReservado() {
+    public static Specification<Produto> comEstoqueReservado(Boolean aplicar) {
         return (root, query, criteriaBuilder) ->
-                criteriaBuilder.notEqual(root.get("estoqueReservado"), 0);
+                (aplicar != null && aplicar) ? criteriaBuilder.notEqual(root.get("estoqueReservado"), 0) : null;
     }
 
     public static Specification<Produto> comFiltros(
@@ -42,13 +40,12 @@ public class ProdutoSpecifications {
             Boolean comEstoquePendente,
             Boolean comEstoqueReservado
     ) {
-
         return Specification.allOf(
                 doCeo(ceoId),
                 comNome(nome),
-                semEstoqueFisico != null && semEstoqueFisico ? semEstoqueFisico() : null,
-                comEstoquePendente != null && comEstoquePendente ? comEstoquePendente() : null,
-                comEstoqueReservado != null && comEstoqueReservado ? comEstoqueReservado() : null
+                semEstoqueFisico(semEstoqueFisico),
+                comEstoquePendente(comEstoquePendente),
+                comEstoqueReservado(comEstoqueReservado)
         );
     }
 }

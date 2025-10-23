@@ -20,7 +20,9 @@ public class LoginController {
     }
 
     @PostMapping
-    public ResponseEntity<RespostaDTO> autenticar(@RequestBody @Valid LoginDTO loginRequest) {
+    public ResponseEntity<RespostaDTO> autenticar(
+            @RequestBody @Valid LoginDTO loginRequest
+    ) {
         return servicoLogin.autenticar(loginRequest.getEmail(), loginRequest.getSenha())
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.badRequest().build());

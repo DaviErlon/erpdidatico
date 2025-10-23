@@ -1,4 +1,4 @@
-package com.example.erpserver.repository;
+package com.example.erpserver.repositories;
 
 import com.example.erpserver.entities.Ceo;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,7 +9,8 @@ import java.util.UUID;
 
 @Repository
 public interface CeoRepositorio extends JpaRepository<Ceo, UUID> {
+
     Optional<Ceo> findByEmail(String email);
 
-    Optional<Ceo> findByCpf(String cpf);
+    boolean existsByEmailOrCpf(String email, String cpf);
 }

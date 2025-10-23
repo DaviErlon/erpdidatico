@@ -9,40 +9,36 @@ import java.util.UUID;
 
 @Entity
 @Table(
-        name = "fornecedores",
+        name = "logsAuditoria",
         indexes = {
-                @Index(name = "idx_fornecedor_cpf", columnList = "cpf"),
-                @Index(name = "idx_fornecedor_cnpj", columnList = "cnpj"),
-                @Index(name = "idx_fornecedor_nome", columnList = "nome"),
-                @Index(name = "idx_fornecedor_ceo", columnList = "ceo_id")
+                @Index(name = "idx_log_funcionario", columnList = "funcionario_id"),
+                @Index(name = "idx_log_ceo", columnList = "ceo_id")
         }
 )
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class Fornecedor {
+public class LogAuditoria {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(length = 11)
-    private String cpf;
-
-    @Column(length = 14)
-    private String cnpj;
-
-    @Column(nullable = false)
-    private String nome;
-
-    private String telefone;
-
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "ceo_id", nullable = false)
     private Ceo ceo;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "funcionario_id", nullable = false)
+    private Funcionario funcionario;  // funcionario que emitiu
+
+    private String acao;           // ex: "CRIAR_PRODUTO", "ATUALIZAR_FUNCIONARIO"
+    private String entidade;       // ex: "Produto", "Funcionario", "Titulo"
+    private UUID entidadeId;       // ex: ID do produto/título
+    private String detalhes;       // JSON, descrição, etc.
 
     @Column(name = "criado_em", nullable = false, updatable = false)
     private OffsetDateTime criadoEm;
@@ -54,3 +50,4 @@ public class Fornecedor {
         }
     }
 }
+

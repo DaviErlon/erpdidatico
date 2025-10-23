@@ -48,6 +48,7 @@ public class Ceo {
     @Column(name = "senha_hash", nullable = false)
     private String senhaHash;
 
+    @Enumerated(EnumType.STRING)
     private TipoPlano plano;
 
     @Column(name = "criado_em", nullable = false, updatable = false)
@@ -87,6 +88,13 @@ public class Ceo {
             orphanRemoval = true,
             fetch = FetchType.LAZY)
     private Set<Titulo> titulos = new HashSet<>();
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "ceo",
+            cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE},
+            orphanRemoval = true,
+            fetch = FetchType.LAZY)
+    private Set<LogAuditoria> logAuditorias = new HashSet<>();
 
     @PrePersist
     protected void onCreate() {

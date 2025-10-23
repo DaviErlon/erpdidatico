@@ -10,7 +10,15 @@ public class TituloSpecifications {
 
     public static Specification<Titulo> doCeo(UUID ceoId) {
         return (root, query, criteriaBuilder) ->
-                criteriaBuilder.equal(root.get("assinante").get("id"), ceoId);
+                criteriaBuilder.equal(root.get("ceo").get("id"), ceoId);
+    }
+
+    public static Specification<Titulo> doEmissor(UUID funcionarioId) {
+        return (root, query, criteriaBuilder) ->
+                funcionarioId == null ? null : criteriaBuilder.equal(
+                        root.get("emissor").get("id"),
+                        funcionarioId
+                );
     }
 
     public static Specification<Titulo> comCpf(String cpf) {
@@ -53,6 +61,15 @@ public class TituloSpecifications {
         };
     }
 
+    public static Specification<Titulo> aprovado(Boolean aprovado) {
+        return (root, query, criteriaBuilder) -> {
+            if (aprovado == null) return null;
+            return aprovado ?
+                    criteriaBuilder.isTrue(root.get("aprovado")) :
+                    criteriaBuilder.isFalse(root.get("aprovado"));
+        };
+    }
+
     public static Specification<Titulo> recebido(Boolean recebido) {
         return (root, query, criteriaBuilder) -> {
             if (recebido == null) return null;
@@ -69,8 +86,10 @@ public class TituloSpecifications {
             String nome,
             LocalDateTime inicio,
             LocalDateTime fim,
+            Boolean aprovado,
             Boolean pago,
-            Boolean recebido
+            Boolean recebido,
+            UUID emissorId
     ) {
 
         return Specification.allOf(
@@ -80,7 +99,9 @@ public class TituloSpecifications {
                 comNome(nome),
                 noPeriodo(inicio, fim),
                 pago(pago),
-                recebido(recebido)
+                recebido(recebido),
+                aprovado(aprovado),
+                doEmissor(emissorId)
         );
     }
 }

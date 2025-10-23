@@ -8,6 +8,8 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -19,7 +21,7 @@ import java.util.UUID;
         },
         indexes = {
                 @Index(name = "idx_funcionario_setor", columnList = "setor"),
-                @Index(name = "idx_funcionario_especializacao", columnList = "especializacao"),
+                @Index(name = "idx_funcionario_tipo", columnList = "tipo"),
                 @Index(name = "idx_funcionario_ceo", columnList = "ceo_id"),
         }
 )
@@ -53,7 +55,7 @@ public class Funcionario {
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "assinante_id", nullable = false)
+    @JoinColumn(name = "ceo_id", nullable = false)
     private Ceo ceo;
 
     @Column(unique = true)
@@ -72,6 +74,13 @@ public class Funcionario {
 
     @Column(name = "criado_em", nullable = false, updatable = false)
     private OffsetDateTime criadoEm;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "funcionario",
+            cascade = {CascadeType.PERSIST, CascadeType.MERGE},
+            orphanRemoval = true,
+            fetch = FetchType.LAZY)
+    private Set<LogAuditoria> logAuditorias = new HashSet<>();
 
     @PrePersist
     protected void onCreate() {

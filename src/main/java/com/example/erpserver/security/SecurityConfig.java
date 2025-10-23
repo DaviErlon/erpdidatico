@@ -14,7 +14,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -34,7 +33,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/login/**").permitAll()
                         .requestMatchers("/api/cadastro/**").permitAll()
-                        .requestMatchers("/api/membros/**").hasRole("ADMIN")
+                        .requestMatchers("/api/operador/**").hasRole("OPERADOR")
+                        .requestMatchers("/api/gestor/**").hasAnyRole("GESTOR", "CEO")
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exception -> exception

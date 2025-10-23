@@ -1,4 +1,4 @@
-package com.example.erpserver.repository;
+package com.example.erpserver.repositories;
 
 import com.example.erpserver.entities.Funcionario;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,10 +12,16 @@ import java.util.UUID;
 @Repository
 public interface FuncionariosRepositorio extends JpaRepository<Funcionario, UUID>, JpaSpecificationExecutor<Funcionario> {
 
+    List<Funcionario> findAllByCeoId(UUID ceoId);
+
     Optional<Funcionario> findByEmail(String email);
 
-    long countByCeoId(UUID ceoId);
-
     Optional<Funcionario> findByCeoIdAndId(UUID ceoId, UUID funcionarioId);
+
+    Optional<Funcionario> findByCeoIdAndCpf(UUID ceoId, String cpf);
+
+    boolean existsByCeoIdAndCpf(UUID ceoId, String cpf);
+
+    long countByCeoId(UUID ceoId);
 }
 

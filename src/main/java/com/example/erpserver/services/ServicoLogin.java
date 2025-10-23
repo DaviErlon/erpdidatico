@@ -1,14 +1,16 @@
 package com.example.erpserver.services;
 
 import com.example.erpserver.DTOs.RespostaDTO;
-import com.example.erpserver.repository.CeoRepositorio;
-import com.example.erpserver.repository.FuncionariosRepositorio;
+import com.example.erpserver.entities.TipoPlano;
+import com.example.erpserver.repositories.CeoRepositorio;
+import com.example.erpserver.repositories.FuncionariosRepositorio;
 import com.example.erpserver.security.JwtUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 @Service
 public class ServicoLogin {
@@ -35,48 +37,39 @@ public class ServicoLogin {
 
         return ceos.findByEmail(email)
                 .filter(c -> passwordEncoder.matches(senha, c.getSenhaHash()))
-                .map(c -> {
-
-                    RespostaDTO resposta = RespostaDTO
-                            .builder()
-                            .token(
-                                    jwtUtil.gerarToken(
-                                            c.getEmail(),
-                                            Set.of("CEO"),
-                                            c.getId(),
-                                            c.getId()
-                                    )
-                            )
-                            .assinante(true)
-                            .plano(c.getPlano())
-                            .nome(c.getNome())
-                            .token(c.getTokenAutorizacao())
-                            .build();
-
-                    return resposta;
-                });
+                .map(c -> criarResposta(
+                        c.getEmail(),
+                        Set.of("CEO"),
+                        c.getId(),
+                        c.getId(),
+                        true,
+                        c.getPlano(),
+                        c.getNome()
+                ));
     }
 
     private Optional<RespostaDTO> autenticarFuncionario(String email, String senha) {
+
         return funcionarios.findByEmail(email)
                 .filter(f -> passwordEncoder.matches(senha, f.getSenhaHash()))
-                .map(f -> {
-                    RespostaDTO resposta = RespostaDTO
-                            .builder()
-                            .token(
-                                    jwtUtil.gerarToken(
-                                            f.getEmail(),
-                                            Set.of(f.getTipo().name()),
-                                            f.getId(),
-                                            f.getCeo().getId()
-                                    )
-                            )
-                            .assinante(false)
-                            .plano(f.getCeo().getPlano())
-                            .nome(f.getNome())
-                            .build();
-
-                    return resposta;
-                });
+                .map(f -> criarResposta(
+                        f.getEmail(),
+                        Set.of(f.getTipo().name()),
+                        f.getId(),
+                        f.getCeo().getId(),
+                        false,
+                        f.getCeo().getPlano(),
+                        f.getNome()
+                ));
     }
+
+    private RespostaDTO criarResposta(String email, Set<String> roles, UUID userId, UUID ceoId, boolean assinante, TipoPlano plano, String nome) {
+        return RespostaDTO.builder()
+                .token(jwtUtil.gerarToken(email, roles, userId, ceoId))
+                .assinante(assinante)
+                .plano(plano)
+                .nome(nome)
+                .build();
+    }
+
 }

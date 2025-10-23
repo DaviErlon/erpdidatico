@@ -3,7 +3,7 @@ package com.example.erpserver.services;
 import com.example.erpserver.DTOs.CadastroDTO;
 import com.example.erpserver.entities.Ceo;
 
-import com.example.erpserver.repository.CeoRepositorio;
+import com.example.erpserver.repositories.CeoRepositorio;
 import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import jakarta.transaction.Transactional;
@@ -26,14 +26,13 @@ public class ServicoCadastro {
 
     // ---------- Adicionar Ceo ----------
     @Transactional
-    public Optional<Ceo> addCeo(CadastroDTO dto) {
+    public Optional<Ceo> adicionarCeo(CadastroDTO dto) {
 
-        if (ceos.findByEmail(dto.getEmail()).isPresent() || ceos.findByCpf(dto.getCpf()).isPresent()) {
+        if (ceos.existsByEmailOrCpf(dto.getEmail(), dto.getCpf())) {
             return Optional.empty();
         }
 
-        Ceo novo = Ceo
-                .builder()
+        Ceo novo = Ceo.builder()
                 .nome(dto.getNome())
                 .email(dto.getEmail())
                 .cpf(dto.getCpf())
@@ -43,6 +42,7 @@ public class ServicoCadastro {
 
         return Optional.of(ceos.save(novo));
     }
+
 
     // As funções de Remover e atualizar vao ficar pendentes pois exige-se uma futura role dev
 

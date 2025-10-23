@@ -16,7 +16,6 @@ import java.util.UUID;
         indexes = {
                 @Index(name = "idx_produto_nome", columnList = "nome"),
                 @Index(name = "idx_produto_ceo", columnList = "ceo_id"),
-                @Index(name = "idx_produto_ceo", columnList = "ceo_id"),
         }
 )
 @Getter
@@ -33,26 +32,26 @@ public class Produto {
     @Column(nullable = false)
     private String nome;
 
-    @Column(nullable = false, precision = 19, scale = 2)
+    @Column(nullable = false, precision = 20, scale = 2)
     private BigDecimal preco;
 
     @Column(nullable = false)
-    private long estoqueDisponivel;
+    private long estoqueDisponivel = 0;
 
     @Column(nullable = false)
-    private long estoquePendente;
+    private long estoquePendente = 0;
 
     @Column(nullable = false)
-    private long estoqueReservado;
+    private long estoqueReservado = 0;
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "assinante_id", nullable = false)
+    @JoinColumn(name = "ceo_id", nullable = false)
     private Ceo ceo;
 
     @JsonIgnore
     @OneToMany(mappedBy = "produto",
-            cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE},
+            cascade = {CascadeType.PERSIST, CascadeType.MERGE},
             orphanRemoval = true,
             fetch = FetchType.LAZY)
     private Set<ProdutosDosTitulos> produtosDosTitulos = new HashSet<>();

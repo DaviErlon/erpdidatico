@@ -1,4 +1,4 @@
-package com.example.erpserver.repository;
+package com.example.erpserver.repositories;
 
 import com.example.erpserver.entities.Cliente;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,5 +15,6 @@ public interface ClientesRepositorio extends JpaRepository<Cliente, UUID>, JpaSp
 
     Optional<Cliente> findByCeoIdAndCpf(UUID ceoId, String cpf);
 
+    boolean existsByCeoIdAndCpf(UUID ceoId, String cpf);
 }
 

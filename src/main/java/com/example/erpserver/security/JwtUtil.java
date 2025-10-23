@@ -28,16 +28,12 @@ public class JwtUtil {
     }
 
     // -------------------- Geração do token --------------------
-    public String gerarToken(String username, Set<String> roles, UUID userId, UUID adminId) {
+    public String gerarToken(String username, Set<String> roles, UUID funcionarioId, UUID ceoId) {
         JwtBuilder builder = Jwts.builder()
                 .setSubject(username)
                 .claim("roles", String.join(",", roles))
-                .claim("userId", userId); // id do usuário
-
-        // Se for membro, adiciona id do admin
-        if (adminId != null) {
-            builder.claim("adminId", adminId);
-        }
+                .claim("funcionarioId", funcionarioId)  // id do usuário
+                .claim("ceoId", ceoId);
 
         return builder
                 .setIssuedAt(new Date())
@@ -57,8 +53,13 @@ public class JwtUtil {
     }
 
     public UUID extrairCeoId(String token) {
-        Object adminId = parseToken(token).getBody().get("adminId");
-        return adminId != null ? UUID.fromString(adminId.toString()) : null;
+        Object ceoId = parseToken(token).getBody().get("adminId");
+        return ceoId != null ? UUID.fromString(ceoId.toString()) : null;
+    }
+
+    public UUID extrairFuncionarioId(String token) {
+        Object funcionarioId = parseToken(token).getBody().get("funcionarioId");
+        return funcionarioId != null ? UUID.fromString(funcionarioId.toString()) : null;
     }
 
     // -------------------- Validação --------------------

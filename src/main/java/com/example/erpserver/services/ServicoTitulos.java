@@ -4,11 +4,10 @@ import com.example.erpserver.DTOs.ItemProdutoDTO;
 import com.example.erpserver.DTOs.PaginaDTO;
 import com.example.erpserver.DTOs.TituloDTO;
 import com.example.erpserver.entities.*;
-import com.example.erpserver.repository.*;
+import com.example.erpserver.repositories.*;
 import com.example.erpserver.security.JwtUtil;
 import com.example.erpserver.specifications.TituloSpecifications;
 import jakarta.transaction.Transactional;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -17,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class ServicoTitulos {
@@ -30,6 +30,7 @@ public class ServicoTitulos {
     private final CeoRepositorio ceos;
     private final JwtUtil jwtUtil;
     private final ServicoProdutos servicoProdutos;
+    private final ServicoEmail servicoEmail;
 
     public ServicoTitulos(
             TitulosRepositorio titulos,
@@ -40,6 +41,7 @@ public class ServicoTitulos {
             FuncionariosRepositorio funcionarios,
             CeoRepositorio ceos,
             ServicoProdutos servicoProdutos,
+            ServicoEmail servicoEmail,
             JwtUtil jwtUtil
     ) {
         this.titulos = titulos;
@@ -50,6 +52,7 @@ public class ServicoTitulos {
         this.funcionarios = funcionarios;
         this.ceos = ceos;
         this.servicoProdutos = servicoProdutos;
+        this.servicoEmail = servicoEmail;
         this.jwtUtil = jwtUtil;
     }
 
@@ -57,16 +60,25 @@ public class ServicoTitulos {
     @Transactional
     public Optional<Titulo> addTituloCliente(String token, TituloDTO dto) {
         UUID ceoId = jwtUtil.extrairCeoId(token);
+        UUID funcionarioId = jwtUtil.extrairFuncionarioId(token);
 
-        return ceos.findById(ceoId).flatMap(ceo ->
-                clientes.findByCeoIdAndId(ceoId, dto.getId())
-                        .flatMap(cliente -> criarTituloCliente(ceo, cliente, dto, token))
-                        .or(() -> criarTituloCliente(ceo, null, dto, token))
-        );
+        return funcionarios.findByCeoIdAndId(ceoId, funcionarioId)
+                .flatMap(emissor ->
+                        ceos.findById(ceoId)
+                                .flatMap(ceo ->
+                                        clientes.findByCeoIdAndId(ceoId, dto.getId())
+                                                .flatMap(cliente ->
+                                                        criarTituloCliente(ceo, cliente, dto, token, emissor)
+                                                )
+                                                .or(() ->
+                                                        criarTituloCliente(ceo, null, dto, token, emissor)
+                                                )
+                                )
+                );
     }
 
     // ---------- Método auxiliar para criar o título ----------
-    private Optional<Titulo> criarTituloCliente(Ceo ceo, Cliente cliente, TituloDTO dto, String token) {
+    private Optional<Titulo> criarTituloCliente(Ceo ceo, Cliente cliente, TituloDTO dto, String token, Funcionario emissor) {
 
         BigDecimal total = BigDecimal.ZERO;
         Set<ProdutosDosTitulos> produtosTitulo = new HashSet<>();
@@ -93,8 +105,19 @@ public class ServicoTitulos {
         }
 
         if (total.compareTo(new BigDecimal("10000.00")) > 0) {
-            // enviar e-mail (opcional)
+
+            for(var f : funcionarios.findAllByCeoId(ceo.getId()).stream().filter(f -> f.getTipo().equals(TipoEspecializacao.GESTOR)).toList()){
+                servicoEmail.enviarEmail(
+                        f.getEmail(),
+                        "Alerta: título elevado",
+                        "Um novo título de valor de " + total + "R$ foi emitido para o cliente: " + cliente.getNome()
+                        + "\nTítulo registrado pelo funcionario: " + emissor.getNome()
+                        + "\nE-mail do funcionário:" + emissor.getEmail()
+                );
+            }
         }
+
+        boolean aprovado = total.compareTo(new BigDecimal("50000.00")) >= 0;
 
         Titulo titulo = Titulo.builder()
                 .ceo(ceo)
@@ -104,101 +127,197 @@ public class ServicoTitulos {
                 .nome(cliente != null ? cliente.getNome() : "ClientePDV")
                 .telefone(cliente != null ? cliente.getTelefone() : null)
                 .produtosDosTitulos(produtosTitulo)
+                .emissor(emissor)
                 .build();
 
-        // Atualiza estoque (reserva)
-        for (ProdutosDosTitulos pdt : produtosTitulo) {
-            pdt.setTitulo(titulo);
-            servicoProdutos.addEstoqueReservado(token, pdt.getProduto().getId(), pdt.getQuantidade());
+        if(aprovado){
+            aprovar(titulo, token);
         }
 
         return Optional.of(titulos.save(titulo));
     }
 
-
     // ---------- Criar Título Fornecedor ----------
     @Transactional
-    public Optional<Titulo> addTituloFornecedor(String token, TituloDTO dto) {
+    public Optional<Titulo> adicionarTituloFornecedor(String token, TituloDTO dto) {
+
         UUID ceoId = jwtUtil.extrairCeoId(token);
+        UUID emissorId = jwtUtil.extrairFuncionarioId(token);
 
-        return ceos.findById(ceoId).flatMap(ceo ->
-                fornecedores.findByCeoIdAndId(ceoId, dto.getId())
-                        .flatMap(fornecedor -> {
+        return funcionarios.findByCeoIdAndId(ceoId, emissorId)
+                .map(emissor -> {
 
-                            BigDecimal total = BigDecimal.ZERO;
-                            Set<ProdutosDosTitulos> produtosTitulo = new HashSet<>();
+                    var fornecedorOpt = fornecedores.findByCeoIdAndId(ceoId, dto.getId());
+                    if (fornecedorOpt.isEmpty()) return Optional.<Titulo>empty();
 
-                            for (ItemProdutoDTO item : dto.getProdutos()) {
-                                var produtoOpt = produtos.findByCeoIdAndId(ceoId, item.getProdutoId());
-                                if (produtoOpt.isEmpty()) {
-                                    // Se algum produto não pertencer ao CEO, aborta toda a operação
-                                    return Optional.empty();
-                                }
+                    var fornecedor = fornecedorOpt.get();
+                    Ceo ceo = Ceo.builder().id(ceoId).build();
 
-                                var produto = produtoOpt.get();
-                                BigDecimal subtotal = produto.getPreco()
-                                        .multiply(BigDecimal.valueOf(item.getQuantidade()));
-                                total = total.add(subtotal);
+                    var produtoIds = dto.getProdutos().stream()
+                            .map(ItemProdutoDTO::getProdutoId)
+                            .toList();
 
-                                ProdutosDosTitulos pdt = ProdutosDosTitulos.builder()
-                                        .nome(produto.getNome())
-                                        .valor(produto.getPreco())
-                                        .quantidade(item.getQuantidade())
-                                        .produto(produto)
-                                        .build();
+                    var produtosMap = produtos.findAllByCeoIdAndIdIn(ceoId, produtoIds)
+                            .stream()
+                            .collect(Collectors.toMap(Produto::getId, p -> p));
 
-                                produtosTitulo.add(pdt);
-                            }
+                    Set<ProdutosDosTitulos> produtosTitulo = new HashSet<>();
+                    BigDecimal total = BigDecimal.ZERO;
 
-                            // Criação do título (negativo = a pagar)
-                            Titulo titulo = Titulo.builder()
-                                    .ceo(ceo)
-                                    .fornecedor(fornecedor)
-                                    .cpf(fornecedor.getCpf())
-                                    .cnpj(fornecedor.getCnpj())
-                                    .telefone(fornecedor.getTelefone())
-                                    .valor(total.negate())
-                                    .produtosDosTitulos(produtosTitulo)
-                                    .build();
+                    for (ItemProdutoDTO item : dto.getProdutos()) {
+                        Produto produto = produtosMap.get(item.getProdutoId());
+                        if (produto == null) return Optional.<Titulo>empty();
 
-                            // Vincula os produtos ao título e ajusta o estoque
-                            for (ProdutosDosTitulos pdt : produtosTitulo) {
-                                pdt.setTitulo(titulo);
-                                servicoProdutos.addEstoquePendente(
-                                        token,
-                                        pdt.getProduto().getId(),
-                                        pdt.getQuantidade()
-                                );
-                            }
+                        BigDecimal subtotal = produto.getPreco().multiply(BigDecimal.valueOf(item.getQuantidade()));
+                        total = total.add(subtotal);
 
-                            return Optional.of(titulos.save(titulo));
-                        })
-        );
+                        produtosTitulo.add(ProdutosDosTitulos.builder()
+                                .nome(produto.getNome())
+                                .valor(produto.getPreco())
+                                .quantidade(item.getQuantidade())
+                                .produto(produto)
+                                .build()
+                        );
+                    }
+
+                    Titulo titulo = Titulo.builder()
+                            .ceo(ceo)
+                            .fornecedor(fornecedor)
+                            .cpf(fornecedor.getCpf())
+                            .cnpj(fornecedor.getCnpj())
+                            .telefone(fornecedor.getTelefone())
+                            .valor(total.negate())
+                            .produtosDosTitulos(produtosTitulo)
+                            .emissor(emissor)
+                            .build();
+
+                    aprovar(titulo, token);
+                    return Optional.of(titulos.save(titulo));
+                }).orElse(Optional.empty());
     }
-
 
     // ---------- Criar Título para Funcionário ----------
     @Transactional
     public Optional<Titulo> addTituloFuncionario(String token, UUID funcionarioId) {
+
+        UUID ceoId = jwtUtil.extrairCeoId(token);
+        UUID emissorId = jwtUtil.extrairFuncionarioId(token);
+
+        return funcionarios.findByCeoIdAndId(ceoId, emissorId)
+                .map(emissor -> {
+
+                    Optional<Funcionario> funcionarioOpt = funcionarios.findByCeoIdAndId(ceoId, funcionarioId);
+
+                    if (funcionarioOpt.isEmpty()) return Optional.<Titulo>empty();
+
+                    var ceo = Ceo.builder().id(ceoId).build();
+                    var titulo = Titulo.builder()
+                            .ceo(ceo)
+                            .funcionario(funcionarioOpt.get())
+                            .nome(funcionarioOpt.get().getNome())
+                            .cpf(funcionarioOpt.get().getCpf())
+                            .telefone(funcionarioOpt.get().getTelefone())
+                            .valor(funcionarioOpt.get().getSalario().negate())
+                            .emissor(emissor)
+                            .build();
+
+                    return Optional.of(titulos.save(titulo));
+                }).orElse(Optional.empty());
+    }
+
+    @Transactional
+    public Optional<Titulo> aprovarTitulo(UUID tituloId, String token) {
         UUID ceoId = jwtUtil.extrairCeoId(token);
 
-        return ceos.findById(ceoId)
-                .flatMap(ceo -> funcionarios.findByCeoIdAndId(ceoId, funcionarioId)
-                            .map(funcionario -> {
-                                BigDecimal salario = funcionario.getSalario();
+        return titulos.findByCeoIdAndId(ceoId, tituloId)
+                .map(titulo -> {
+                    aprovar(titulo, token);
+                    return titulos.save(titulo);
+                });
+    }
 
-                                Titulo titulo = Titulo.builder()
-                                        .ceo(ceo)
-                                        .funcionario(funcionario)
-                                        .nome(funcionario.getNome())
-                                        .cpf(funcionario.getCpf())
-                                        .telefone(funcionario.getTelefone())
-                                        .valor(salario.negate())
-                                        .build();
+    // ---------- Marcar como Pago ----------
+    @Transactional
+    public Optional<Titulo> pagarTitulo(String token, UUID tituloId) {
+        UUID ceoId = jwtUtil.extrairCeoId(token);
 
-                                return titulos.save(titulo);
-                            })
-                );
+        return titulos.findByCeoIdAndIdAndPagoFalseAndAprovadoTrue(ceoId, tituloId)
+                .map(titulo -> {
+                    titulo.setPago(true);
+                    return titulos.save(titulo);
+                });
+    }
+
+    // ---------- Confirmar movimentação estoque como Pago ----------
+    @Transactional
+    public Optional<Titulo> receberEstoqueTitulo(String token, UUID tituloId) {
+        UUID ceoId = jwtUtil.extrairCeoId(token);
+
+        return titulos.findByCeoIdAndIdAndRecebidoNoEstoqueFalseAndFuncionarioIsNullAndAprovadoTrueAndPagoTrueAndValorLessThan(ceoId, tituloId, BigDecimal.ZERO)
+                .map(titulo -> {
+
+                    List<ProdutosDosTitulos> itens = produtosDosTitulos.findByTituloId(titulo.getId());
+
+                    boolean pagarOuReceber = titulo.getValor().compareTo(new BigDecimal("0")) < 0;
+
+                    for (ProdutosDosTitulos item : itens) {
+
+                        Produto produto = item.getProduto();
+                        long quantidade = item.getQuantidade();
+
+                        if (pagarOuReceber) {
+                            servicoProdutos.quitarEstoquePendente(token, produto.getId(), quantidade);
+                        } else {
+                            servicoProdutos.quitarEstoqueReservado(token, produto.getId(), quantidade);
+                        }
+                    }
+
+                    titulo.setRecebidoNoEstoque(true);
+                    return titulos.save(titulo);
+                });
+    }
+
+    // ---------- Buscar Titulos (Paginação) ----------
+    public PaginaDTO<Titulo> buscarTitulos(
+            String token,
+            String cpf,
+            String cnpj,
+            String nome,
+            LocalDateTime inicio,
+            LocalDateTime fim,
+            Boolean pago,
+            Boolean recebido,
+            Boolean aprovado,
+            int pagina,
+            int tamanho) {
+
+        UUID ceoId = jwtUtil.extrairCeoId(token);
+        Pageable pageable = PageRequest.of(pagina, tamanho);
+        Specification<Titulo> spec = TituloSpecifications.comFiltros(ceoId, cpf, cnpj, nome, inicio, fim, pago, recebido, aprovado, null);
+
+        return PaginaDTO.from(titulos.findAll(spec, pageable));
+    }
+
+    public PaginaDTO<Titulo> buscarTitulosEmitidos(
+            String token,
+            String cpf,
+            String cnpj,
+            String nome,
+            LocalDateTime inicio,
+            LocalDateTime fim,
+            Boolean pago,
+            Boolean recebido,
+            Boolean aprovado,
+            int pagina,
+            int tamanho) {
+
+        UUID ceoId = jwtUtil.extrairCeoId(token);
+        UUID emissorId = jwtUtil.extrairFuncionarioId(token);
+
+        Pageable pageable = PageRequest.of(pagina, tamanho);
+        Specification<Titulo> spec = TituloSpecifications.comFiltros(ceoId, cpf, cnpj, nome, inicio, fim, pago, recebido, aprovado, emissorId);
+
+        return PaginaDTO.from(titulos.findAll(spec, pageable));
     }
 
     // ---------- Remover Título ----------
@@ -236,69 +355,25 @@ public class ServicoTitulos {
                 });
     }
 
-    // ---------- Marcar como Pago ----------
     @Transactional
-    public Optional<Titulo> quitarTitulo(String token, UUID tituloId) {
-        UUID ceoId = jwtUtil.extrairCeoId(token);
+    private void aprovar(Titulo titulo, String token){
 
-        return titulos.findByCeoIdAndId(ceoId, tituloId)
-                .filter(titulo -> !titulo.isPago())
-                .map(titulo -> {
+        var produtosTitulo = titulo.getProdutosDosTitulos();
 
-                    titulo.setPago(true);
-                    return titulos.save(titulo);
-                });
+        if(produtosTitulo != null && !titulo.isAprovado()){
+            if(titulo.getValor().compareTo(new BigDecimal("0")) < 0){
+                for(ProdutosDosTitulos pdt : produtosTitulo){
+                    pdt.setTitulo(titulo);
+                    servicoProdutos.addEstoquePendente(token, pdt.getProduto().getId(), pdt.getQuantidade());
+                }
+            } else {
+                for (ProdutosDosTitulos pdt : produtosTitulo) {
+                    pdt.setTitulo(titulo);
+                    servicoProdutos.addEstoqueReservado(token, pdt.getProduto().getId(), pdt.getQuantidade());
+                }
+            }
+        }
+        titulo.setAprovado(true);
     }
-
-    // ---------- Confirmar movimentação estoque como Pago ----------
-    @Transactional
-    public Optional<Titulo> confEstoqueTitulo(String token, UUID tituloId) {
-        UUID ceoId = jwtUtil.extrairCeoId(token);
-
-        return titulos.findByCeoIdAndId(ceoId, tituloId)
-                .filter(titulo -> !titulo.isRecebidoNoEstoque() && titulo.getFuncionario() == null)
-                .map(titulo -> {
-
-                    List<ProdutosDosTitulos> itens = produtosDosTitulos.findByTituloId(titulo.getId());
-
-                    boolean isFornecedor = titulo.getValor().compareTo(new BigDecimal("0")) < 0;
-
-                    for (ProdutosDosTitulos item : itens) {
-
-                        Produto produto = item.getProduto();
-                        long quantidade = item.getQuantidade();
-
-                        if (isFornecedor) {
-                            servicoProdutos.quitarEstoquePendente(token, produto.getId(), quantidade);
-                        } else {
-                            servicoProdutos.quitarEstoqueReservado(token, produto.getId(), quantidade);
-                        }
-                    }
-
-                    titulo.setRecebidoNoEstoque(true);
-                    return titulos.save(titulo);
-                });
-    }
-
-    // ---------- Buscar Titulos (Paginação) ----------
-    public PaginaDTO<Titulo> buscarTitulos(
-            String token,
-            String cpf,
-            String cnpj,
-            String nome,
-            LocalDateTime inicio,
-            LocalDateTime fim,
-            Boolean pago,
-            Boolean recebido,
-            int pagina,
-            int tamanho) {
-
-        UUID ceoId = jwtUtil.extrairCeoId(token);
-        Pageable pageable = PageRequest.of(pagina, tamanho);
-        Specification<Titulo> spec = TituloSpecifications.comFiltros(ceoId, cpf, cnpj, nome, inicio, fim, pago, recebido);
-
-        return PaginaDTO.from(titulos.findAll(spec, pageable));
-    }
-
 }
 

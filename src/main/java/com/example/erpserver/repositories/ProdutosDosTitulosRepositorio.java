@@ -1,4 +1,4 @@
-package com.example.erpserver.repository;
+package com.example.erpserver.repositories;
 
 import com.example.erpserver.entities.ProdutosDosTitulos;
 import com.example.erpserver.entities.Titulo;
@@ -12,7 +12,5 @@ import java.util.UUID;
 public interface ProdutosDosTitulosRepositorio extends JpaRepository<ProdutosDosTitulos, UUID> {
 
     List<ProdutosDosTitulos> findByTituloId(UUID tituloId);
-
-    void deleteByTitulo(Titulo titulo);
 
 }
