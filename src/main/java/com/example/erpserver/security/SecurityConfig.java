@@ -34,7 +34,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/login/**").permitAll()
                         .requestMatchers("/api/cadastro/**").permitAll()
                         .requestMatchers("/api/operador/**").hasRole("OPERADOR")
-                        .requestMatchers("/api/gestor/**").hasAnyRole("GESTOR", "CEO")
+                        .requestMatchers("/api/gestor/**").hasRole("GESTOR")
+                        .requestMatchers("/api/financeiro/**").hasRole("FINANCEIRO")
+                        .requestMatchers("/api/tesoureiro/**").hasRole("TESOUREIRO")
+                        .requestMatchers("/api/almoxarife/**").hasRole("ALMOXARIFE")
+                        .requestMatchers("/api/ceo/**").hasRole("CEO")
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exception -> exception

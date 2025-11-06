@@ -29,12 +29,16 @@ public class ServicoFuncionarios {
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
 
+    private final ServicoLogAuditoria servicoLogAuditoria;
+
     public ServicoFuncionarios(
             FuncionariosRepositorio funcionarios,
             CeoRepositorio ceos,
             JwtUtil jwtUtil,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            ServicoLogAuditoria servicoLogAuditoria
     ) {
+        this.servicoLogAuditoria = servicoLogAuditoria;
         this.funcionarios = funcionarios;
         this.ceos = ceos;
         this.jwtUtil = jwtUtil;
@@ -48,6 +52,8 @@ public class ServicoFuncionarios {
             FuncionarioDTO dto
     ) {
         UUID ceoId = jwtUtil.extrairCeoId(token);
+        UUID emissorId = jwtUtil.extrairFuncionarioId(token);
+
         TipoPlano plano = ceos.findById(ceoId).map(Ceo::getPlano).orElse(TipoPlano.BASICO);
 
         long limite = switch (plano) {
@@ -61,18 +67,26 @@ public class ServicoFuncionarios {
             return Optional.empty();
         }
 
-        Funcionario funcionario = Funcionario.builder()
-                .nome(dto.getNome())
-                .ceo(Ceo.builder().id(ceoId).build())
-                .cpf(dto.getCpf())
-                .salario(dto.getSalario())
-                .bonus(dto.getBonus())
-                .setor(dto.getSetor())
-                .telefone(dto.getTelefone())
-                .build();
+        Ceo ceoReferencia = new Ceo();
+        ceoReferencia.setId(ceoId);
+
+        Funcionario emissor = new Funcionario();
+        emissor.setId(emissorId);
+
+        Funcionario funcionario = new Funcionario();
+        funcionario.setNome(dto.getNome());
+        funcionario.setCeo(ceoReferencia);
+        funcionario.setCpf(dto.getCpf());
+        funcionario.setSalario(dto.getSalario());
+        funcionario.setBonus(dto.getBonus());
+        funcionario.setSetor(dto.getSetor());
+        funcionario.setTelefone(dto.getTelefone());
+
+        funcionario = funcionarios.save(funcionario);
+
+        servicoLogAuditoria.registrar(ceoReferencia, emissor, "CONTRATAÇÃO", "FUNCIONÁRIO", funcionario.getId(), "ADIÇÃO DE FUNCIONÁRIO");
 
         return Optional.of(funcionarios.save(funcionario));
-
     }
 
     // ---------- Editar Funcionario ----------
@@ -82,8 +96,8 @@ public class ServicoFuncionarios {
             UUID funcionarioId,
             FuncionarioDTO dto
     ) {
-
         UUID ceoId = jwtUtil.extrairCeoId(token);
+        UUID emissorId = jwtUtil.extrairFuncionarioId(token);
 
         if (funcionarios.findByCeoIdAndCpf(ceoId, dto.getCpf())
                 .filter(f -> !f.getId().equals(funcionarioId))
@@ -91,15 +105,22 @@ public class ServicoFuncionarios {
             return Optional.empty(); // CPF já usado
         }
 
-        return funcionarios.findByCeoIdAndId(ceoId,funcionarioId)
+        return funcionarios.findByCeoIdAndId(ceoId, funcionarioId)
                 .map(f -> {
-
                     f.setNome(dto.getNome());
                     f.setBonus(dto.getBonus());
                     f.setSalario(dto.getSalario());
                     f.setCpf(dto.getCpf());
                     f.setSetor(dto.getSetor());
                     f.setTelefone(dto.getTelefone());
+
+                    Ceo ceoRef = new Ceo();
+                    ceoRef.setId(ceoId);
+
+                    Funcionario emissor = new Funcionario();
+                    emissor.setId(emissorId);
+
+                    servicoLogAuditoria.registrar(ceoRef, emissor, "EDIÇÃO", "FUNCIONÁRIO", funcionarioId, "EDIÇÃO DOS DADOS DO FUNCIONÁRIO");
 
                     return funcionarios.save(f);
                 });
@@ -111,8 +132,9 @@ public class ServicoFuncionarios {
             String token,
             UUID funcionarioId,
             CadastroFuncionarioDTO dto
-    ){
+    ) {
         UUID ceoId = jwtUtil.extrairCeoId(token);
+        UUID emissorId = jwtUtil.extrairFuncionarioId(token);
 
         if (funcionarios.findByEmail(dto.getEmail()).isPresent()) {
             return Optional.empty();
@@ -121,8 +143,7 @@ public class ServicoFuncionarios {
         return funcionarios.findById(funcionarioId)
                 .filter(f -> f.getCeo().getId().equals(ceoId))
                 .map(f -> {
-
-                    if(dto.getTipo() != null){
+                    if (dto.getTipo() != null && !dto.getTipo().equals(TipoEspecializacao.CEO)) {
                         f.setEmail(dto.getEmail());
                         f.setSenhaHash(passwordEncoder.encode(dto.getSenha()));
                         f.setTipo(dto.getTipo());
@@ -131,6 +152,14 @@ public class ServicoFuncionarios {
                         f.setTipo(null);
                         f.setSenhaHash(null);
                     }
+
+                    Ceo ceoRef = new Ceo();
+                    ceoRef.setId(ceoId);
+
+                    Funcionario emissor = new Funcionario();
+                    emissor.setId(emissorId);
+
+                    servicoLogAuditoria.registrar(ceoRef, emissor, "PROMOÇÃO", "FUNCIONÁRIO", funcionarioId, dto.getTipo() == null ? "FUNCIONÁRIO REBAIXADO" : "FUNCIOANRIO PROMOVIDO PARA" + dto.getTipo().toString());
 
                     return funcionarios.save(f);
                 });
@@ -142,13 +171,31 @@ public class ServicoFuncionarios {
             String token,
             UUID funcionarioId
     ) {
-
         UUID ceoId = jwtUtil.extrairCeoId(token);
+        UUID emissorId = jwtUtil.extrairFuncionarioId(token);
+
+        Funcionario emissor = funcionarios.findByCeoIdAndId(ceoId, emissorId).orElse(null);
+        if(emissor == null) return Optional.empty();
 
         return funcionarios.findByCeoIdAndId(ceoId, funcionarioId)
-                .map(f -> {
+                .flatMap(f -> {
+
+                    if(
+                        f.getTipo().equals(TipoEspecializacao.CEO) ||
+                        f.getTipo().equals(TipoEspecializacao.GESTOR) &&
+                        !emissor.getTipo().equals(TipoEspecializacao.CEO)
+                    ){
+                        return Optional.empty();
+                    } 
+
                     funcionarios.delete(f);
-                    return f;
+
+                    Ceo ceoRef = new Ceo();
+                    ceoRef.setId(ceoId);
+
+                    servicoLogAuditoria.registrar(ceoRef, emissor, "DEMIÇÃO", "FUNCIONÁRIO", f.getId(), "DEMISSÃO DO FUNCIONARIO " + f.getNome());
+
+                    return Optional.empty();
                 });
     }
 
@@ -162,7 +209,6 @@ public class ServicoFuncionarios {
             int pagina,
             int tamanho
     ) {
-
         UUID ceoID = jwtUtil.extrairCeoId(token);
         Pageable pageable = PageRequest.of(pagina, tamanho);
         Specification<Funcionario> spec = FuncionarioSpecifications.comFiltros(ceoID, cpf, nome, telefone, tipo);

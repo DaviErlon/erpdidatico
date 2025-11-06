@@ -29,7 +29,6 @@ public class CadastroDTO {
     @CPF
     private String cpf;
 
-    @Min(value = 0, message = "Tipo inválido")
-    @Max(value = 2, message = "Tipo inválido")
+    @NotNull
     private TipoPlano plano;
 }

@@ -4,7 +4,6 @@ import com.example.erpserver.entities.*;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public class LogSpecifications {
@@ -14,9 +13,30 @@ public class LogSpecifications {
                 criteriaBuilder.equal(root.get("ceo").get("id"), ceoId);
     }
 
-    public static Specification<LogAuditoria> doEmissor(UUID funcionarioId) {
+    public static Specification<LogAuditoria> comCpf(String cpf) {
         return (root, query, criteriaBuilder) ->
-                criteriaBuilder.equal(root.get("emissor").get("id"), funcionarioId);
+                (cpf == null || cpf.isEmpty()) ? null : criteriaBuilder.like(root.get("cpf"), cpf + "%");
+    }
+
+    public static Specification<LogAuditoria> comTelefone(String telefone) {
+        return (root, query, criteriaBuilder) ->
+                (telefone == null || telefone.isEmpty()) ? null : criteriaBuilder.like(root.get("telefone"), telefone + "%");
+    }
+
+    public static Specification<LogAuditoria> comNome(String nome) {
+        return (root, query, criteriaBuilder) ->
+                (nome == null || nome.isEmpty()) ? null : criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("nome")),
+                        "%" + nome.toLowerCase() + "%"
+                );
+    }
+
+    public static Specification<LogAuditoria> deAcao(String acao) {
+        return (root, query, criteriaBuilder) ->
+                (acao == null || acao.isEmpty()) ? null : criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("acao")),
+                        "%" + acao.toLowerCase() + "%"
+                );
     }
 
     public static Specification<LogAuditoria> noPeriodo(LocalDateTime inicio, LocalDateTime fim) {
@@ -28,16 +48,21 @@ public class LogSpecifications {
 
     public static Specification<LogAuditoria> comFiltros(
             UUID ceoId,
-            UUID emissorId,
+            String nome,
+            String cpf,
+            String telefone,
+            String acao,
             LocalDateTime inicio,
             LocalDateTime fim
     ) {
-        Specification<LogAuditoria> spec = doCeo(ceoId);
 
         return Specification.allOf(
                 doCeo(ceoId),
+                comNome(nome),
+                comCpf(cpf),
+                comTelefone(telefone),
                 noPeriodo(inicio, fim),
-                doEmissor(emissorId)
+                deAcao(acao)
         );
     }
 }

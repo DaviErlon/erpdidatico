@@ -1,8 +1,6 @@
 package com.example.erpserver.DTOs;
 
-import com.example.erpserver.entities.TipoEspecializacao;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -36,7 +34,6 @@ public class FuncionarioDTO {
     @Size(min = 3, max = 100, message = "O nome deve ter entre 3 e 100 caracteres")
     private String nome;
 
-    @NotBlank(message = "nome do setor não pode ser nulo ou vazio")
     @Size(min = 3, max = 100, message = "O nome do setor deve ter entre 3 e 100 caracteres")
     private String setor;
 }

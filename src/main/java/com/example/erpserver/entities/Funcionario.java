@@ -1,7 +1,6 @@
 package com.example.erpserver.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -29,7 +28,6 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Funcionario {
 
     @Id
@@ -44,14 +42,14 @@ public class Funcionario {
 
     private String telefone;
 
-    @Column(nullable = false, precision = 19, scale = 2)
-    private BigDecimal salario;
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal salario = BigDecimal.ZERO;
 
-    @Column(nullable = false, precision = 19, scale = 2)
-    private BigDecimal bonus;
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal bonus = BigDecimal.ZERO;
 
     @Column(nullable = false)
-    private String setor;
+    private String setor = "Setor não declarado";
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -91,10 +89,10 @@ public class Funcionario {
 
     @PreUpdate
     private void validarEspecializacaoComLogin() {
-        if (TipoEspecializacao.GESTOR.equals(this.tipo) && this.tokenAutorizacao == null) {
+        if (TipoEspecializacao.GESTOR.equals(this.tipo) || TipoEspecializacao.CEO.equals(this.tipo) && this.tokenAutorizacao == null) {
             this.tokenAutorizacao = gerarTokenAleatorio(6);
         }
-        if(!TipoEspecializacao.GESTOR.equals(this.tipo) && this.tokenAutorizacao != null){
+        if(!(TipoEspecializacao.GESTOR.equals(this.tipo) || TipoEspecializacao.CEO.equals(this.tipo)) && this.tokenAutorizacao != null){
             this.tokenAutorizacao = null;
         }
     }

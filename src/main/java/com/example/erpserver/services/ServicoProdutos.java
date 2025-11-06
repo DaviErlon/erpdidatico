@@ -2,9 +2,9 @@ package com.example.erpserver.services;
 
 import com.example.erpserver.DTOs.PaginaDTO;
 import com.example.erpserver.entities.Ceo;
+import com.example.erpserver.entities.Funcionario;
 import com.example.erpserver.entities.Produto;
 import com.example.erpserver.DTOs.ProdutoDTO;
-import com.example.erpserver.repositories.CeoRepositorio;
 import com.example.erpserver.repositories.ProdutosRepositorio;
 import com.example.erpserver.security.JwtUtil;
 import com.example.erpserver.specifications.ProdutoSpecifications;
@@ -16,22 +16,24 @@ import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 @Service
 public class ServicoProdutos {
 
-    private final CeoRepositorio ceos;
     private final ProdutosRepositorio produtos;
     private final JwtUtil jwtUtil;
+
+    private final ServicoLogAuditoria servicoLogAuditoria;
 
     public ServicoProdutos(
             ProdutosRepositorio produtos,
             JwtUtil jwtUtil,
-            CeoRepositorio ceos
+            ServicoLogAuditoria servicoLogAuditoria
     ) {
+        this.servicoLogAuditoria = servicoLogAuditoria;
         this.produtos = produtos;
         this.jwtUtil = jwtUtil;
-        this.ceos = ceos;
     }
 
     // ---------- Adicionar Produto ----------
@@ -39,43 +41,61 @@ public class ServicoProdutos {
     public Optional<Produto> adicionarProduto(String token, ProdutoDTO dto) {
 
         UUID ceoId = jwtUtil.extrairCeoId(token);
+        UUID funcionarioId = jwtUtil.extrairFuncionarioId(token);
 
-        Produto novoProduto = Produto.builder()
-                .nome(dto.getNome())
-                .preco(dto.getPreco())
-                .estoqueDisponivel(dto.getQuantidade())
-                .ceo(Ceo.builder().id(ceoId).build())
-                .build();
+        Ceo ceo = new Ceo();
+        ceo.setId(ceoId);
 
-        return Optional.of(produtos.save(novoProduto));
+        Funcionario emissor = new Funcionario();
+        emissor.setId(funcionarioId);
+
+        Produto novoProduto = new Produto();
+        novoProduto.setNome(dto.getNome());
+        novoProduto.setPreco(dto.getPreco());
+        novoProduto.setEstoqueDisponivel(dto.getQuantidade());
+        novoProduto.setCeo(ceo);
+
+        novoProduto = produtos.save(novoProduto);
+
+        servicoLogAuditoria.registrar(ceo, emissor, "CRIAÇÃO", "PRODUTO", novoProduto.getId(), "ADIÇÂO DE NOVO PRODUTO AO ESTOQUE");
+
+        return Optional.of(novoProduto);
     }
 
     // ---------- Atualizar Produto ----------
     @Transactional
     public Optional<Produto> atualizarProduto(String token, UUID produtoId, ProdutoDTO dto) {
+        
         UUID ceoId = jwtUtil.extrairCeoId(token);
+        UUID funcionarioId = jwtUtil.extrairFuncionarioId(token);
 
         return produtos.findByCeoIdAndId(ceoId, produtoId)
                 .map(p -> {
                     p.setNome(dto.getNome());
                     p.setPreco(dto.getPreco());
 
+                    Ceo ceo = new Ceo();
+                    ceo.setId(ceoId);
+
+                    Funcionario emissor = new Funcionario();
+                    emissor.setId(funcionarioId);
+
+                    servicoLogAuditoria.registrar(ceo, emissor, "EDIÇÂO", "PRODUTO", p.getId(), "EDIÇÃO DE INFORMAÇÕES DO PRODUTO");
+
                     return produtos.save(p);
                 });
     }
 
     // ---------- Movimentação de Estoque ----------
-    // Helper para atualizar produto
-    private Optional<Produto> atualizarProduto(String token, UUID produtoId, java.util.function.Consumer<Produto> atualizacao) {
+    private Optional<Produto> atualizarProduto(String token, UUID produtoId, Consumer<Produto> atualizacao) {
         UUID ceoId = jwtUtil.extrairCeoId(token);
         return produtos.findByCeoIdAndId(ceoId, produtoId)
                 .map(p -> {
                     atualizacao.accept(p);
-                    return p; // não precisa chamar save() se está em @Transactional
+                    return p; // @Transactional garante persistência automática
                 });
     }
 
-    // ---------- Movimentação de Estoque ----------
     @Transactional
     public Optional<Produto> addEstoquePendente(String token, UUID produtoId, long quantidade) {
         return atualizarProduto(token, produtoId, p ->
@@ -86,9 +106,7 @@ public class ServicoProdutos {
     @Transactional
     public Optional<Produto> quitarEstoquePendente(String token, UUID produtoId, long quantidade) {
         return atualizarProduto(token, produtoId, p -> {
-
             if (p.getEstoquePendente() < quantidade) return;
-
             p.setEstoquePendente(p.getEstoquePendente() - quantidade);
             p.setEstoqueDisponivel(p.getEstoqueDisponivel() + quantidade);
         });
@@ -97,9 +115,7 @@ public class ServicoProdutos {
     @Transactional
     public Optional<Produto> addEstoqueReservado(String token, UUID produtoId, long quantidade) {
         return atualizarProduto(token, produtoId, p -> {
-
             if (p.getEstoqueDisponivel() < quantidade) return;
-
             p.setEstoqueReservado(p.getEstoqueReservado() + quantidade);
             p.setEstoqueDisponivel(p.getEstoqueDisponivel() - quantidade);
         });
@@ -123,7 +139,6 @@ public class ServicoProdutos {
             int pagina,
             int tamanho
     ) {
-
         UUID ceoId = jwtUtil.extrairCeoId(token);
         Pageable pageable = PageRequest.of(pagina, tamanho);
         Specification<Produto> spec = ProdutoSpecifications.comFiltros(ceoId, nome, semEstoque, comEstoquePendente, comEstoqueReservado);
@@ -133,17 +148,24 @@ public class ServicoProdutos {
 
     // ---------- Remover Produto ----------
     @Transactional
-    public Optional<Produto> removerProduto(
-            String token,
-            UUID produtoId
-    ) {
+    public Optional<Produto> removerProduto(String token, UUID produtoId) {
+        
         UUID ceoId = jwtUtil.extrairCeoId(token);
+        UUID funcionarioId = jwtUtil.extrairFuncionarioId(token);
 
         return produtos.findByCeoIdAndId(ceoId, produtoId)
                 .map(produto -> {
                     produtos.delete(produto);
+
+                    Ceo ceo = new Ceo();
+                    ceo.setId(ceoId);
+
+                    Funcionario emissor = new Funcionario();
+                    emissor.setId(funcionarioId);
+
+                    servicoLogAuditoria.registrar(ceo, emissor, "REMOÇÃO", "PRODUTO", produto.getId(), "REMOÇÃO TOTAL DO PRODUTO " + produto.getNome());
+
                     return produto;
                 });
     }
 }
-

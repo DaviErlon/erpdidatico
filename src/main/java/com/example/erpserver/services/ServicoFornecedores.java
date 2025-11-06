@@ -4,7 +4,7 @@ import com.example.erpserver.DTOs.FornecedorDTO;
 import com.example.erpserver.DTOs.PaginaDTO;
 import com.example.erpserver.entities.Ceo;
 import com.example.erpserver.entities.Fornecedor;
-import com.example.erpserver.repositories.CeoRepositorio;
+import com.example.erpserver.entities.Funcionario;
 import com.example.erpserver.repositories.FornecedoresRepositorio;
 import com.example.erpserver.security.JwtUtil;
 import com.example.erpserver.specifications.FornecedorSpecifications;
@@ -20,16 +20,17 @@ import java.util.UUID;
 @Service
 public class ServicoFornecedores {
 
-    private final CeoRepositorio ceos;
     private final FornecedoresRepositorio fornecedores;
     private final JwtUtil jwtUtil;
+
+    private final ServicoLogAuditoria servicoLogAuditoria;
 
     public ServicoFornecedores(
             FornecedoresRepositorio fornecedores,
             JwtUtil jwtUtil,
-            CeoRepositorio ceos
+            ServicoLogAuditoria servicoLogAuditoria
     ) {
-        this.ceos = ceos;
+        this.servicoLogAuditoria = servicoLogAuditoria;
         this.jwtUtil = jwtUtil;
         this.fornecedores = fornecedores;
     }
@@ -38,26 +39,39 @@ public class ServicoFornecedores {
     @Transactional
     public Optional<Fornecedor> adicionarFornecedor(String token, FornecedorDTO dto) {
         UUID ceoId = jwtUtil.extrairCeoId(token);
+        UUID emissorId = jwtUtil.extrairFuncionarioId(token);
 
-        if (fornecedores.existsByCeoIdAndCpf(ceoId, dto.getCpf()) || fornecedores.existsByCeoIdAndCnpj(ceoId, dto.getCnpj())) {
+        if (fornecedores.existsByCeoIdAndCpf(ceoId, dto.getCpf()) ||
+                fornecedores.existsByCeoIdAndCnpj(ceoId, dto.getCnpj())) {
             return Optional.empty();
         }
 
-        Fornecedor novoFornecedor = Fornecedor.builder()
-                .ceo(Ceo.builder().id(ceoId).build())
-                .nome(dto.getNome())
-                .cpf(dto.getCpf())
-                .telefone(dto.getTelefone())
-                .build();
+        Ceo ceoReferencia = new Ceo();
+        ceoReferencia.setId(ceoId);
 
-        return Optional.of(fornecedores.save(novoFornecedor));
+        Funcionario emissor = new Funcionario();
+        emissor.setId(emissorId);
 
+        Fornecedor novoFornecedor = new Fornecedor();
+        novoFornecedor.setCeo(ceoReferencia);
+        novoFornecedor.setNome(dto.getNome());
+        novoFornecedor.setCpf(dto.getCpf());
+        novoFornecedor.setCnpj(dto.getCnpj());
+        novoFornecedor.setTelefone(dto.getTelefone());
+
+        novoFornecedor = fornecedores.save(novoFornecedor);
+
+        servicoLogAuditoria.registrar(ceoReferencia, emissor, "ADIÇÃO", "FORNECEDOR", novoFornecedor.getId(), "NOVO FORNECEDOR CADASTRADO");
+
+        return Optional.of(novoFornecedor);
     }
 
     // ---------- Atualizar Fornecedor ----------
     @Transactional
-    public Optional<Fornecedor> atualizarCliente(String token, UUID id, FornecedorDTO dto) {
+    public Optional<Fornecedor> atualizarFornecedor(String token, UUID id, FornecedorDTO dto) {
+        
         UUID ceoId = jwtUtil.extrairCeoId(token);
+        UUID emissorId = jwtUtil.extrairFuncionarioId(token);
 
         if (fornecedores.findByCeoIdAndCpf(ceoId, dto.getCpf())
                 .filter(f -> !f.getId().equals(id))
@@ -68,7 +82,7 @@ public class ServicoFornecedores {
         if (fornecedores.findByCeoIdAndCnpj(ceoId, dto.getCnpj())
                 .filter(f -> !f.getId().equals(id))
                 .isPresent()) {
-            return Optional.empty(); // CPF já usado
+            return Optional.empty(); // CNPJ já usado
         }
 
         return fornecedores.findByCeoIdAndId(ceoId, id)
@@ -77,11 +91,20 @@ public class ServicoFornecedores {
                     f.setCpf(dto.getCpf());
                     f.setCnpj(dto.getCnpj());
                     f.setTelefone(dto.getTelefone());
+
+                    Ceo ceoReferencia = new Ceo();
+                    ceoReferencia.setId(ceoId);
+                            
+                    Funcionario emissor = new Funcionario();
+                    emissor.setId(emissorId);
+
+                    servicoLogAuditoria.registrar(ceoReferencia, emissor, "EDIÇÃO", "FORNECEDOR", f.getId(), "EDIÇÃO NOS DADOS DO FORNECEDOR");
+
                     return fornecedores.save(f);
                 });
     }
 
-    // ---------- Buscar Forncedores (Paginação) ----------
+    // ---------- Buscar Fornecedores (Paginação) ----------
     public PaginaDTO<Fornecedor> buscarFornecedores(
             String token,
             String cpf,
@@ -98,19 +121,28 @@ public class ServicoFornecedores {
         return PaginaDTO.from(fornecedores.findAll(spec, pageable));
     }
 
-    // ---------- Remover Fornecodor ----------
+    // ---------- Remover Fornecedor ----------
     @Transactional
     public Optional<Fornecedor> removerFornecedor(
             String token,
             UUID fornecedorId
     ) {
         UUID ceoId = jwtUtil.extrairCeoId(token);
+        UUID emissorId = jwtUtil.extrairFuncionarioId(token);
 
         return fornecedores.findByCeoIdAndId(ceoId, fornecedorId)
                 .map(f -> {
                     fornecedores.delete(f);
+                    
+                    Ceo ceoReferencia = new Ceo();
+                    ceoReferencia.setId(ceoId);
+
+                    Funcionario emissor = new Funcionario();
+                    emissor.setId(emissorId);
+                    
+                    servicoLogAuditoria.registrar(ceoReferencia, emissor, "REMOÇÃO", "FORNECEDOR", f.getId(), "REMOÇÃO DO FORNEDOR " + f.getNome());
+
                     return f;
                 });
     }
 }
-

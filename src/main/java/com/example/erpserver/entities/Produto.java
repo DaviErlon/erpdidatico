@@ -22,7 +22,6 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Produto {
 
     @Id
@@ -32,7 +31,7 @@ public class Produto {
     @Column(nullable = false)
     private String nome;
 
-    @Column(nullable = false, precision = 20, scale = 2)
+    @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal preco;
 
     @Column(nullable = false)

@@ -17,7 +17,5 @@ public class RespostaDTO {
 
     private TipoEspecializacao tipo;
 
-    private boolean assinante;
-
     private String nome;
 }

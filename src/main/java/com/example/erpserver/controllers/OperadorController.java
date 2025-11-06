@@ -44,14 +44,14 @@ public class OperadorController {
         this.servicoTitulos = servicoTitulos;
     }
 
-    @PostMapping("/vender")
+    @PostMapping("/criarVenda")
     public ResponseEntity<Titulo> venderParaCliente(
             @RequestHeader("Authorization") String authHeader,
             @Valid @RequestBody TituloDTO dto
     ) {
         String token = authHeader.replace("Bearer ", "");
 
-        return servicoTitulos.addTituloCliente(token, dto)
+        return servicoTitulos.adicionarTituloCliente(token, dto)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.badRequest().build());
     }

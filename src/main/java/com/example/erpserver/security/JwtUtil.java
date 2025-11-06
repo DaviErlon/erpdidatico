@@ -53,7 +53,7 @@ public class JwtUtil {
     }
 
     public UUID extrairCeoId(String token) {
-        Object ceoId = parseToken(token).getBody().get("adminId");
+        Object ceoId = parseToken(token).getBody().get("ceoId");
         return ceoId != null ? UUID.fromString(ceoId.toString()) : null;
     }
 

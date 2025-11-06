@@ -25,20 +25,19 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Titulo {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false, precision = 19, scale = 2)
+    @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal valor;
 
     @Column(nullable = false)
     private boolean pago = false;
 
-    private boolean recebidoNoEstoque;
+    private boolean estoqueMovimentado = false;
 
     @Column(nullable = false)
     private boolean aprovado = false;

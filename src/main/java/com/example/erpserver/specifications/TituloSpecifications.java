@@ -79,11 +79,17 @@ public class TituloSpecifications {
         };
     }
 
+    public static Specification<Titulo> comTelefone(String telefone) {
+        return (root, query, criteriaBuilder) ->
+                (telefone == null || telefone.isEmpty()) ? null : criteriaBuilder.like(root.get("telefone"), telefone + "%");
+    }
+
     public static Specification<Titulo> comFiltros(
             UUID ceoId,
             String cpf,
             String cnpj,
             String nome,
+            String telefone,
             LocalDateTime inicio,
             LocalDateTime fim,
             Boolean aprovado,
@@ -97,6 +103,7 @@ public class TituloSpecifications {
                 comCpf(cpf),
                 comCnpj(cnpj),
                 comNome(nome),
+                comTelefone(telefone),
                 noPeriodo(inicio, fim),
                 pago(pago),
                 recebido(recebido),

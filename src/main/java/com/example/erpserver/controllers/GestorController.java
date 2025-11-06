@@ -51,22 +51,22 @@ public class GestorController {
         this.servicoLogAuditoria = servicoLogAuditoria;
     }
 
-    @PutMapping("/titulos")
+    @PutMapping("/titulos/{id}")
     public ResponseEntity<Titulo> aprovarTitulo(
             @RequestHeader("Authorization") String authHeader,
-            @RequestParam UUID tituloId
+            @PathVariable UUID id
     ){
         String token = authHeader.replace("Bearer ", "");
 
-        return servicoTitulos.aprovarTitulo(tituloId, token)
+        return servicoTitulos.aprovarTitulo(id, token)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.badRequest().build());
     }
 
-    @DeleteMapping("/titulos")
+    @DeleteMapping("/titulos/{id}")
     public ResponseEntity<Titulo> removerTitulo(
             @RequestHeader("Authorization") String authHeader,
-            @RequestParam UUID tituloId
+            @PathVariable UUID tituloId
     ){
         String token = authHeader.replace("Bearer ", "");
 
@@ -87,40 +87,40 @@ public class GestorController {
                 .orElseGet(() -> ResponseEntity.badRequest().build());
     }
 
-    @PutMapping("/funcionarios/promover")
+    @PutMapping("/funcionarios/promo/{id}")
     public ResponseEntity<Funcionario> promoverFuncionario(
             @RequestHeader("Authorization") String authHeader,
-            @RequestParam UUID funcionarioId,
+            @PathVariable UUID id,
             @RequestBody @Valid CadastroFuncionarioDTO dto
     ){
         String token = authHeader.replace("Bearer ", "");
 
-        return servicoFuncionarios.promoverFuncionario(token, funcionarioId ,dto)
+        return servicoFuncionarios.promoverFuncionario(token, id ,dto)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.badRequest().build());
     }
 
-    @PutMapping("/funcionarios")
+    @PutMapping("/funcionarios/{id}")
     public ResponseEntity<Funcionario> editarFuncionario(
             @RequestHeader("Authorization") String authHeader,
-            @RequestParam UUID funcionarioId,
+            @PathVariable UUID id,
             @RequestBody @Valid FuncionarioDTO dto
     ){
         String token = authHeader.replace("Bearer ", "");
 
-        return servicoFuncionarios.editarFuncionario(token, funcionarioId ,dto)
+        return servicoFuncionarios.editarFuncionario(token, id ,dto)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.badRequest().build());
     }
 
-    @DeleteMapping("/funcionarios")
+    @DeleteMapping("/funcionarios/{id}")
     public ResponseEntity<Funcionario> removerFuncionario(
             @RequestHeader("Authorization") String authHeader,
-            @RequestParam UUID funcionarioId
+            @PathVariable UUID id
     ){
         String token = authHeader.replace("Bearer ", "");
 
-        return servicoFuncionarios.removerFuncionario(token, funcionarioId)
+        return servicoFuncionarios.removerFuncionario(token, id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.badRequest().build());
     }
@@ -133,7 +133,7 @@ public class GestorController {
             @RequestParam(required = false) String telefone,
             @RequestParam(required = false) TipoEspecializacao tipo,
             @RequestParam(defaultValue = "0") int pagina,
-            @RequestParam(defaultValue = "30") int tamanho
+            @RequestParam(defaultValue = "10") int tamanho
 
     ){
         String token = authHeader.replace("Bearer ", "");
@@ -149,7 +149,7 @@ public class GestorController {
             @RequestParam(required = false) Boolean comEstoquePendente,
             @RequestParam(required = false) Boolean comEstoqueReservado,
             @RequestParam(defaultValue = "0") int pagina,
-            @RequestParam(defaultValue = "30") int tamanho
+            @RequestParam(defaultValue = "10") int tamanho
 
     ){
         String token = authHeader.replace("Bearer ", "");
@@ -191,7 +191,10 @@ public class GestorController {
     @GetMapping("/logs")
     public PaginaDTO<LogAuditoria> buscarLogs(
             @RequestHeader("Authorization") String authHeader,
-            @RequestParam(required = false) UUID emissorId,
+            @RequestParam(required = false) String nome,
+            @RequestParam(required = false) String cpf,
+            @RequestParam(required = false) String telefone,
+            @RequestParam(required = false) String acao,
             @RequestParam(required = false)LocalDateTime inicio,
             @RequestParam(required = false)LocalDateTime fim,
             @RequestParam(defaultValue = "0") int pagina,
@@ -200,7 +203,27 @@ public class GestorController {
     ){
         String token = authHeader.replace("Bearer ", "");
 
-        return servicoLogAuditoria.buscarLogs(token, emissorId, inicio, fim, pagina, tamanho);
+        return servicoLogAuditoria.buscarLogs(token, nome, cpf, telefone, acao, inicio, fim, pagina, tamanho);
     }
 
+    @GetMapping("/titulos")
+    public PaginaDTO<Titulo> buscarTitulos(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestParam(required = false) String nome,
+            @RequestParam(required = false) String cpf,
+            @RequestParam(required = false) String cnpj,
+            @RequestParam(required = false) String telefone,
+            @RequestParam(required = false)LocalDateTime inicio,
+            @RequestParam(required = false)LocalDateTime fim,
+            @RequestParam(required = false) Boolean pago,
+            @RequestParam(required = false) Boolean recebido,
+            @RequestParam(required = false) Boolean aprovado,
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "30") int tamanho
+
+    ){
+        String token = authHeader.replace("Bearer ", "");
+
+        return servicoTitulos.buscarTitulos(token, cpf, cnpj, nome, telefone, inicio, fim, pago, recebido, aprovado, pagina, tamanho);
+    }
 }

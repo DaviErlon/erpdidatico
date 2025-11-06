@@ -17,7 +17,6 @@ import java.util.UUID;
 )
 @Getter
 @Setter
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class LogAuditoria {
@@ -31,9 +30,23 @@ public class LogAuditoria {
     @JoinColumn(name = "ceo_id", nullable = false)
     private Ceo ceo;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "funcionario_id", nullable = false)
     private Funcionario funcionario;  // funcionario que emitiu
+
+    @Column(nullable = false)
+    private String nome;
+
+    private String telefone;
+
+    @Column(nullable = false, length = 11)
+    private String cpf;
+
+    @Column(nullable = false)
+    private String email;
+
+    @Column(nullable = false)
+    private String setor = "Setor não declarado";
 
     private String acao;           // ex: "CRIAR_PRODUTO", "ATUALIZAR_FUNCIONARIO"
     private String entidade;       // ex: "Produto", "Funcionario", "Titulo"
