@@ -274,12 +274,14 @@ public class ServicoTitulos {
             Boolean pago,
             Boolean recebido,
             Boolean aprovado,
+            Boolean temFornOrFunc,
             int pagina,
             int tamanho
     ) {
         UUID ceoId = jwtUtil.extrairCeoId(token);
+
         Pageable pageable = PageRequest.of(pagina, tamanho);
-        Specification<Titulo> spec = TituloSpecifications.comFiltros(ceoId, cpf, cnpj, nome, telefone, inicio, fim, pago, recebido, aprovado, null);
+        Specification<Titulo> spec = TituloSpecifications.comFiltros(ceoId, cpf, cnpj, nome, telefone, inicio, fim, pago, recebido, aprovado, null, temFornOrFunc);
         return PaginaDTO.from(titulos.findAll(spec, pageable));
     }
 
@@ -299,7 +301,7 @@ public class ServicoTitulos {
         UUID ceoId = jwtUtil.extrairCeoId(token);
         UUID emissorId = jwtUtil.extrairFuncionarioId(token);
         Pageable pageable = PageRequest.of(pagina, tamanho);
-        Specification<Titulo> spec = TituloSpecifications.comFiltros(ceoId, cpf, cnpj, nome, null, inicio, fim, pago, recebido, aprovado, emissorId);
+        Specification<Titulo> spec = TituloSpecifications.comFiltros(ceoId, cpf, cnpj, nome, null, inicio, fim, pago, recebido, aprovado, emissorId, null);
         return PaginaDTO.from(titulos.findAll(spec, pageable));
     }
 

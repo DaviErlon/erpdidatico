@@ -3,6 +3,7 @@ package com.example.erpserver.services;
 import com.example.erpserver.DTOs.CadastroDTO;
 import com.example.erpserver.entities.Ceo;
 import com.example.erpserver.entities.Funcionario;
+import com.example.erpserver.entities.TipoEspecializacao;
 import com.example.erpserver.repositories.CeoRepositorio;
 import com.example.erpserver.repositories.FuncionariosRepositorio;
 import org.springframework.stereotype.Service;
@@ -54,6 +55,7 @@ public class ServicoCadastro {
         novofun.setEmail(dto.getEmail());
         novofun.setSenhaHash(senhaHash);
         novofun.setCpf(dto.getCpf());
+        novofun.setTipo(TipoEspecializacao.CEO);
         novofun.setCeo(novo);
         novofun.setSetor("CEO DA EMPRESA");
 

@@ -35,7 +35,6 @@ import jakarta.validation.Valid;
 @Validated
 public class FinanceiroController {
     
-    
     private final ServicoTitulos servicoTitulos;
     private final ServicoFuncionarios servicoFuncionarios;
     private final ServicoProdutos servicoProdutos;
@@ -130,13 +129,14 @@ public class FinanceiroController {
             @RequestParam(required = false) Boolean pago,
             @RequestParam(required = false) Boolean recebido,
             @RequestParam(required = false) Boolean aprovado,
+            @RequestParam(required = false) Boolean pagarOuReceber,
             @RequestParam(defaultValue = "0") int pagina,
             @RequestParam(defaultValue = "30") int tamanho
 
     ){
         String token = authHeader.replace("Bearer ", "");
 
-        return servicoTitulos.buscarTitulos(token, cpf, cnpj, nome, telefone, inicio, fim, pago, recebido, aprovado, pagina, tamanho);
+        return servicoTitulos.buscarTitulos(token, cpf, cnpj, nome, telefone, inicio, fim, pago, recebido, aprovado, pagarOuReceber, pagina, tamanho);
     }
 
     @PostMapping("/titulos/funcionario/{id}")
@@ -159,6 +159,18 @@ public class FinanceiroController {
         String token = authHeader.replace("Bearer ", "");
 
         return servicoTitulos.adicionarTituloFornecedor(token, dto)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.badRequest().build());
+    }
+
+    @PutMapping("/titulos/{id}")
+    public ResponseEntity<Titulo> aprovarTitulo(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable UUID id
+    ){
+        String token = authHeader.replace("Bearer ", "");
+
+        return servicoTitulos.aprovarTitulo(id, token)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.badRequest().build());
     }

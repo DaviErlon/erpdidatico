@@ -84,6 +84,25 @@ public class TituloSpecifications {
                 (telefone == null || telefone.isEmpty()) ? null : criteriaBuilder.like(root.get("telefone"), telefone + "%");
     }
 
+    public static Specification<Titulo> temFornecedorOuFuncionario(Boolean temFornecedorOuCliente) {
+        return (root, query, criteriaBuilder) -> {
+            if (temFornecedorOuCliente == null) return null;
+
+            if (temFornecedorOuCliente) {
+                return criteriaBuilder.or(
+                        criteriaBuilder.isNotNull(root.get("fornecedor")),
+                        criteriaBuilder.isNotNull(root.get("funcionario"))
+                );
+            } else {
+                return criteriaBuilder.and(
+                        criteriaBuilder.isNull(root.get("fornecedor")),
+                        criteriaBuilder.isNull(root.get("funcionario"))
+                );
+            }
+        };
+    }
+
+
     public static Specification<Titulo> comFiltros(
             UUID ceoId,
             String cpf,
@@ -95,7 +114,8 @@ public class TituloSpecifications {
             Boolean aprovado,
             Boolean pago,
             Boolean recebido,
-            UUID emissorId
+            UUID emissorId, 
+            Boolean temFornOrFunc
     ) {
 
         return Specification.allOf(
@@ -108,7 +128,8 @@ public class TituloSpecifications {
                 pago(pago),
                 recebido(recebido),
                 aprovado(aprovado),
-                doEmissor(emissorId)
+                doEmissor(emissorId),
+                temFornecedorOuFuncionario(temFornOrFunc)
         );
     }
 }

@@ -104,7 +104,6 @@ public class CeoController {
     }
 
     // TITULOS ::
-
     @PutMapping("/titulos/{id}")
     public ResponseEntity<Titulo> aprovarTitulo(
             @RequestHeader("Authorization") String authHeader,
@@ -141,13 +140,14 @@ public class CeoController {
             @RequestParam(required = false) Boolean pago,
             @RequestParam(required = false) Boolean recebido,
             @RequestParam(required = false) Boolean aprovado,
+            @RequestParam(required = false) Boolean pagarOuReceber,
             @RequestParam(defaultValue = "0") int pagina,
             @RequestParam(defaultValue = "30") int tamanho
 
     ){
         String token = authHeader.replace("Bearer ", "");
 
-        return servicoTitulos.buscarTitulos(token, cpf, cnpj, nome, telefone, inicio, fim, pago, recebido, aprovado, pagina, tamanho);
+        return servicoTitulos.buscarTitulos(token, cpf, cnpj, nome, telefone, inicio, fim, pago, recebido, aprovado, pagarOuReceber, pagina, tamanho);
     }
 
     // FUNCIONARIOS ::
