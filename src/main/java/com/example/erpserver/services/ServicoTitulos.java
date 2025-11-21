@@ -333,7 +333,7 @@ public class ServicoTitulos {
                     }
                     titulos.delete(titulo);
 
-                                        Ceo ceo = new Ceo();
+                    Ceo ceo = new Ceo();
                     ceo.setId(ceoId);
 
                     Funcionario emissor = new Funcionario();

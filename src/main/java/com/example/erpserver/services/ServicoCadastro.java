@@ -9,6 +9,8 @@ import com.example.erpserver.repositories.FuncionariosRepositorio;
 import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import jakarta.transaction.Transactional;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.HashSet;
 import java.util.Optional;
@@ -19,20 +21,39 @@ public class ServicoCadastro {
     private final CeoRepositorio ceos;
     private final FuncionariosRepositorio funcionarios;
     private final PasswordEncoder passwordEncoder;
+    private final RestTemplate restTemplate;
 
     public ServicoCadastro(
             CeoRepositorio ceos,
             PasswordEncoder passwordEncoder,
-            FuncionariosRepositorio funcionarios
+            FuncionariosRepositorio funcionarios,
+            RestTemplate restTemplate
     ) {
         this.ceos = ceos;
         this.passwordEncoder = passwordEncoder;
         this.funcionarios = funcionarios;
+        this.restTemplate = restTemplate;
     }
 
     // ---------- Adicionar Ceo ----------
     @Transactional
     public Optional<Ceo> adicionarCeo(CadastroDTO dto) {
+
+        try {
+            String url = "http://localhost:8081/api/aprovacao";
+
+            var response = restTemplate.postForEntity(url, null, String.class);
+
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                return Optional.empty();
+            }
+
+        } catch (HttpClientErrorException ex) {
+            if (ex.getStatusCode().value() == 406) {
+                return Optional.empty();
+            }
+            throw ex;
+        }
 
         if (funcionarios.existsByEmailOrCpf(dto.getEmail(), dto.getCpf())) {
             return Optional.empty();
