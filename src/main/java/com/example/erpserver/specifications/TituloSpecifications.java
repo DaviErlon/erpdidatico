@@ -74,8 +74,8 @@ public class TituloSpecifications {
         return (root, query, criteriaBuilder) -> {
             if (recebido == null) return null;
             return recebido ?
-                    criteriaBuilder.isTrue(root.get("recebidoNoEstoque")) :
-                    criteriaBuilder.isFalse(root.get("recebidoNoEstoque"));
+                    criteriaBuilder.isTrue(root.get("estoqueMovimentado")) :
+                    criteriaBuilder.isFalse(root.get("estoqueMovimentado"));
         };
     }
 
@@ -111,9 +111,9 @@ public class TituloSpecifications {
             String telefone,
             LocalDateTime inicio,
             LocalDateTime fim,
-            Boolean aprovado,
             Boolean pago,
             Boolean recebido,
+            Boolean aprovado,
             UUID emissorId, 
             Boolean temFornOrFunc
     ) {

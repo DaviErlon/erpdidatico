@@ -39,6 +39,7 @@ public class ServicoCadastro {
     @Transactional
     public Optional<Ceo> adicionarCeo(CadastroDTO dto) {
 
+        /*
         try {
             String url = "http://localhost:8081/api/aprovacao";
 
@@ -54,6 +55,7 @@ public class ServicoCadastro {
             }
             throw ex;
         }
+        */
 
         if (funcionarios.existsByEmailOrCpf(dto.getEmail(), dto.getCpf())) {
             return Optional.empty();

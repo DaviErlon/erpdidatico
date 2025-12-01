@@ -19,4 +19,9 @@ public class ValidationHandler {
         );
         return ResponseEntity.badRequest().body(errors);
     }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<String> handleIllegalState(IllegalStateException ex) {
+        return ResponseEntity.badRequest().body(ex.getMessage());
+    }
 }

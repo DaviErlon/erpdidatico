@@ -116,7 +116,7 @@ public class ServicoFornecedores {
     ) {
         UUID ceoId = jwtUtil.extrairCeoId(token);
         Pageable pageable = PageRequest.of(pagina, tamanho);
-        Specification<Fornecedor> spec = FornecedorSpecifications.comFiltros(ceoId, cpf, cnpj, telefone, nome);
+        Specification<Fornecedor> spec = FornecedorSpecifications.comFiltros(ceoId, cpf, cnpj, nome, telefone);
 
         return PaginaDTO.from(fornecedores.findAll(spec, pageable));
     }

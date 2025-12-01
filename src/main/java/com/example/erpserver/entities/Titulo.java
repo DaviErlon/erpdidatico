@@ -1,6 +1,7 @@
 package com.example.erpserver.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -32,11 +33,12 @@ public class Titulo {
     private UUID id;
 
     @Column(nullable = false, precision = 12, scale = 2)
-    private BigDecimal valor;
+    private BigDecimal valor; 
 
     @Column(nullable = false)
     private boolean pago = false;
 
+    @Column(nullable = false)
     private boolean estoqueMovimentado = false;
 
     @Column(nullable = false)
@@ -57,6 +59,7 @@ public class Titulo {
     @Column(name = "criado_em", nullable = false, updatable = false)
     private OffsetDateTime criadoEm;
 
+    // Esse você realmente quer ignorar no JSON
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "ceo_id", nullable = false)
@@ -64,24 +67,31 @@ public class Titulo {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cliente_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Cliente cliente;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "fornecedor_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Fornecedor fornecedor;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "funcionario_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Funcionario funcionario;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "emissor_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Funcionario emissor;
 
-    @OneToMany(mappedBy = "titulo",
+    @OneToMany(
+            mappedBy = "titulo",
             cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE},
             orphanRemoval = true,
-            fetch = FetchType.LAZY)
+            fetch = FetchType.LAZY
+    )
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Set<ProdutosDosTitulos> produtosDosTitulos = new HashSet<>();
 
     @PrePersist

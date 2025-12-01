@@ -11,6 +11,10 @@ import java.util.UUID;
 @Repository
 public interface TitulosRepositorio extends JpaRepository<Titulo, UUID>, JpaSpecificationExecutor<Titulo> {
 
+    boolean existsByEmissorIdAndAprovadoFalse(UUID emissorId);
+
+    Optional<Titulo> findFirstByEmissorIdAndPagoFalseOrderByIdAsc(UUID emissorId);
+
     Optional<Titulo> findByCeoIdAndId(UUID assinanteId, UUID tituloId);
 
     Optional<Titulo> findByCeoIdAndIdAndPagoFalseAndAprovadoTrue(UUID ceoId, UUID tituloId);

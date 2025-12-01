@@ -2,7 +2,6 @@ package com.example.erpserver.services;
 
 import com.example.erpserver.DTOs.ItemProdutoDTO;
 import com.example.erpserver.DTOs.PaginaDTO;
-import com.example.erpserver.DTOs.TituloDTO;
 import com.example.erpserver.entities.*;
 import com.example.erpserver.repositories.*;
 import com.example.erpserver.security.JwtUtil;
@@ -16,7 +15,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class ServicoTitulos {
@@ -59,67 +57,118 @@ public class ServicoTitulos {
 
     // ---------- Criar Título Cliente ----------
     @Transactional
-    public Optional<Titulo> adicionarTituloCliente(String token, TituloDTO dto) {
+    public Optional<Titulo> criarVendaCliente(String token, UUID clienteId) {
         UUID ceoId = jwtUtil.extrairCeoId(token);
         UUID emissorId = jwtUtil.extrairFuncionarioId(token);
 
         return funcionarios.findByCeoIdAndId(ceoId, emissorId)
                 .flatMap(emissor -> {
+
+                    if(titulos.existsByEmissorIdAndAprovadoFalse(emissorId)){
+                        return titulos.findFirstByEmissorIdAndPagoFalseOrderByIdAsc(emissorId);
+                    }
+
                     Ceo ceo = new Ceo();
                     ceo.setId(ceoId);
-                    
-                    Cliente cliente = clientes.findByCeoIdAndId(ceoId, dto.getId()).orElse(null);
-                    
-                    Optional<Titulo> response = criarTituloCliente(ceo, cliente, dto, token, emissor);
-                    
-                    if(response.isPresent()){
-                        servicoLogAuditoria.registrar(ceo, emissor, "EMISSÃO", "TÍTULO", response.get().getId(), "TÍTULO A RECEBER DE CLIENTE"); 
-                    }
-                    return response;
+
+                    Cliente cliente = clientes.findByCeoIdAndId(ceoId, clienteId).orElse(null);
+
+                    Titulo titulo = new Titulo();
+                    titulo.setCeo(ceo);
+                    titulo.setCliente(cliente);
+                    titulo.setEmissor(emissor);
+                    titulo.setProdutosDosTitulos(new HashSet<>());
+                    titulo.setValor(BigDecimal.ZERO);
+                    titulo.setCpf(cliente != null ? cliente.getCpf() : null);
+                    titulo.setNome(cliente != null ? cliente.getNome() : "ClientePDV");
+                    titulo.setTelefone(cliente != null ? cliente.getTelefone() : null);
+
+                    Titulo salvo = titulos.save(titulo);
+
+                    servicoLogAuditoria.registrar(
+                            ceo, emissor, "EMISSÃO", "TÍTULO", salvo.getId(),
+                            "TÍTULO A RECEBER DE CLIENTE"
+                    );
+
+                    return Optional.of(salvo);
                 });
     }
 
+    @Transactional
+    public Optional<Titulo> adicionarProduto(String token, UUID tituloId, ItemProdutoDTO dto) {
+        UUID ceoId = jwtUtil.extrairCeoId(token);
+        UUID emissorId = jwtUtil.extrairFuncionarioId(token);
+
+        var tituloOpt = titulos.findByCeoIdAndId(ceoId, tituloId);
+        if (tituloOpt.isEmpty()) return Optional.empty();
+
+        var tituloAssicadoAoOperador = titulos.findFirstByEmissorIdAndPagoFalseOrderByIdAsc(emissorId);
+        if(tituloAssicadoAoOperador.isEmpty()) return Optional.empty();
+
+        if(!tituloAssicadoAoOperador.get().getId().equals(tituloOpt.get().getId()))
+            return Optional.empty();
+
+        Titulo titulo = tituloOpt.get();
+
+        var produtoOpt = produtos.findByCeoIdAndId(ceoId, dto.getProdutoId());
+        if (produtoOpt.isEmpty()) throw new IllegalStateException("Produto não encontrado");
+
+        var produto = produtoOpt.get();
+
+        ProdutosDosTitulos pdt = new ProdutosDosTitulos();
+        pdt.setNome(produto.getNome());
+        pdt.setValor(produto.getPreco());
+        pdt.setQuantidade(dto.getQuantidade());
+        pdt.setProduto(produto);
+        pdt.setTitulo(titulo);
+
+        titulo.getProdutosDosTitulos().add(pdt);
+
+        // Recalcular o valor total do título
+        BigDecimal total = titulo.getProdutosDosTitulos().stream()
+                .map(p -> p.getValor().multiply(BigDecimal.valueOf(p.getQuantidade())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        titulo.setValor(total);
+
+        // Enviar alerta se necessário (mesma lógica de antes)
+        if (total.compareTo(new BigDecimal("10000")) > 0) {
+            var gestores = funcionarios.findAllByCeoId(ceoId).stream()
+                    .filter(f -> f.getTipo().equals(TipoEspecializacao.GESTOR))
+                    .toList();
+
+            for (var f : gestores) {
+                servicoEmail.enviarEmail(
+                        f.getEmail(),
+                        "Alerta: título elevado",
+                        "O título " + titulo.getId() + " agora possui valor total de " + total + " R$."
+                );
+            }
+        }
+
+        if (total.compareTo(new BigDecimal("50000")) >= 0 && !titulo.isAprovado()) {
+            aprovar(titulo, token);
+        }
+
+        return Optional.of(titulos.save(titulo));
+    }
+
+
     // ---------- Criar Título Fornecedor ----------
     @Transactional
-    public Optional<Titulo> adicionarTituloFornecedor(String token, TituloDTO dto) {
+    public Optional<Titulo> criarTituloFornecedor(String token, UUID fornecedorId) {
         UUID ceoId = jwtUtil.extrairCeoId(token);
         UUID emissorId = jwtUtil.extrairFuncionarioId(token);
 
         return funcionarios.findByCeoIdAndId(ceoId, emissorId)
-                .map(emissor -> {
-                    var fornecedorOpt = fornecedores.findByCeoIdAndId(ceoId, dto.getId());
-                    if (fornecedorOpt.isEmpty()) return Optional.<Titulo>empty();
+                .flatMap(emissor -> {
+                    var fornecedorOpt = fornecedores.findByCeoIdAndId(ceoId, fornecedorId);
+                    if (fornecedorOpt.isEmpty()) return Optional.empty();
 
                     var fornecedor = fornecedorOpt.get();
 
                     Ceo ceo = new Ceo();
                     ceo.setId(ceoId);
-
-                    var produtoIds = dto.getProdutos().stream()
-                            .map(ItemProdutoDTO::getProdutoId)
-                            .toList();
-
-                    var produtosMap = produtos.findAllByCeoIdAndIdIn(ceoId, produtoIds)
-                            .stream()
-                            .collect(Collectors.toMap(Produto::getId, p -> p));
-
-                    Set<ProdutosDosTitulos> produtosTitulo = new HashSet<>();
-                    BigDecimal total = BigDecimal.ZERO;
-
-                    for (ItemProdutoDTO item : dto.getProdutos()) {
-                        Produto produto = produtosMap.get(item.getProdutoId());
-                        if (produto == null) throw new IllegalStateException("Produto não encontrado");
-
-                        BigDecimal subtotal = produto.getPreco().multiply(BigDecimal.valueOf(item.getQuantidade()));
-                        total = total.add(subtotal);
-
-                        ProdutosDosTitulos pdt = new ProdutosDosTitulos();
-                        pdt.setNome(produto.getNome());
-                        pdt.setValor(produto.getPreco());
-                        pdt.setQuantidade(item.getQuantidade());
-                        pdt.setProduto(produto);
-                        produtosTitulo.add(pdt);
-                    }
 
                     Titulo titulo = new Titulo();
                     titulo.setCeo(ceo);
@@ -127,16 +176,63 @@ public class ServicoTitulos {
                     titulo.setCpf(fornecedor.getCpf());
                     titulo.setCnpj(fornecedor.getCnpj());
                     titulo.setTelefone(fornecedor.getTelefone());
-                    titulo.setValor(total.negate());
-                    titulo.setProdutosDosTitulos(produtosTitulo);
+                    titulo.setValor(BigDecimal.ZERO);
+                    titulo.setProdutosDosTitulos(new HashSet<>());
                     titulo.setEmissor(emissor);
 
-                    titulo = titulos.save(titulo);
+                    Titulo salvo = titulos.save(titulo);
 
-                    servicoLogAuditoria.registrar(ceo, emissor, "EMISSÃO", "TÍTULO", titulo.getId(), "TÍTULO A PAGAR FORNECEDOR");
+                    servicoLogAuditoria.registrar(
+                            ceo,
+                            emissor,
+                            "EMISSÃO",
+                            "TÍTULO",
+                            salvo.getId(),
+                            "TÍTULO A PAGAR FORNECEDOR"
+                    );
 
-                    return Optional.of(titulo);
-                }).orElse(Optional.empty());
+                    return Optional.of(salvo);
+                });
+    }
+
+    @Transactional
+    public Optional<Titulo> adicionarItemFornecedor(String token, UUID tituloId, ItemProdutoDTO dto) {
+        UUID ceoId = jwtUtil.extrairCeoId(token);
+
+        var tituloOpt = titulos.findByCeoIdAndId(ceoId, tituloId);
+        if (tituloOpt.isEmpty()) return Optional.empty();
+
+        Titulo titulo = tituloOpt.get();
+
+        // Título precisa ser de fornecedor
+        if (titulo.getFornecedor() == null) {
+            throw new IllegalStateException("Este título não pertence a um fornecedor");
+        }
+
+        var produtoOpt = produtos.findByCeoIdAndId(ceoId, dto.getProdutoId());
+        if (produtoOpt.isEmpty()) throw new IllegalStateException("Produto não encontrado");
+
+        var produto = produtoOpt.get();
+
+        // Criar item
+        ProdutosDosTitulos pdt = new ProdutosDosTitulos();
+        pdt.setNome(produto.getNome());
+        pdt.setValor(produto.getPreco());
+        pdt.setQuantidade(dto.getQuantidade());
+        pdt.setProduto(produto);
+
+        titulo.getProdutosDosTitulos().add(pdt);
+
+        // Recalcular total negativo
+        BigDecimal total = titulo.getProdutosDosTitulos().stream()
+                .map(i -> i.getValor().multiply(BigDecimal.valueOf(i.getQuantidade())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        titulo.setValor(total.negate()); // fornecedor sempre negativo
+
+        Titulo salvo = titulos.save(titulo);
+
+        return Optional.of(salvo);
     }
 
     // ---------- Criar Título para Funcionário ----------
@@ -307,30 +403,38 @@ public class ServicoTitulos {
 
     // ---------- Remover Título ----------
     @Transactional
-    public Optional<Titulo> removerTitulo(String token, UUID tituloId) {
-        
+    public Optional<Titulo> removerTituloToken(String token, UUID tituloId, String tokenSeguranca) {
+
         UUID ceoId = jwtUtil.extrairCeoId(token);
         UUID funcionarioId = jwtUtil.extrairFuncionarioId(token);
 
+        Optional<Funcionario> autorizador = funcionarios.findByCeoIdAndTokenAutorizacao(ceoId, tokenSeguranca);
+
+        if (autorizador.isEmpty()) {
+            throw new IllegalStateException("Token de autorização inválido.");
+        }
+
         return titulos.findByCeoIdAndId(ceoId, tituloId)
                 .map(titulo -> {
-                    if (!titulo.isPago()) {
-                        if (titulo.getFuncionario() == null) {
-                            List<ProdutosDosTitulos> itens = produtosDosTitulos.findByTituloId(titulo.getId());
-                            for (ProdutosDosTitulos item : itens) {
-                                Produto produto = item.getProduto();
-                                long quantidade = item.getQuantidade();
 
-                                if (titulo.getValor().compareTo(BigDecimal.ZERO) < 0) {
-                                    produto.setEstoquePendente(produto.getEstoquePendente() - quantidade);
-                                } else {
-                                    produto.setEstoqueReservado(produto.getEstoqueReservado() - quantidade);
-                                    produto.setEstoqueDisponivel(produto.getEstoqueDisponivel() + quantidade);
-                                }
-                                produtos.save(produto);
+                    if (!titulo.isPago() && titulo.getFuncionario() == null) {
+                        List<ProdutosDosTitulos> itens = produtosDosTitulos.findByTituloId(titulo.getId());
+
+                        for (ProdutosDosTitulos item : itens) {
+                            Produto produto = item.getProduto();
+                            long quantidade = item.getQuantidade();
+
+                            if (titulo.getValor().compareTo(BigDecimal.ZERO) < 0) {
+                                produto.setEstoquePendente(produto.getEstoquePendente() - quantidade);
+                            } else {
+                                produto.setEstoqueReservado(produto.getEstoqueReservado() - quantidade);
+                                produto.setEstoqueDisponivel(produto.getEstoqueDisponivel() + quantidade);
                             }
+
+                            produtos.save(produto);
                         }
                     }
+
                     titulos.delete(titulo);
 
                     Ceo ceo = new Ceo();
@@ -338,12 +442,69 @@ public class ServicoTitulos {
 
                     Funcionario emissor = new Funcionario();
                     emissor.setId(funcionarioId);
-                    
-                    servicoLogAuditoria.registrar(ceo, emissor, "DELETAR", "TÍTULO", titulo.getId(), "TÍTULO REMOVIDO DO SISTEMA");
+
+                    servicoLogAuditoria.registrar(
+                            ceo,
+                            emissor,
+                            "CANCELAR",
+                            "TÍTULO no valor de " + titulo.getValor().toString(),
+                            titulo.getId(),
+                            "TÍTULO REMOVIDO DO SISTEMA (Autorizado por: " + autorizador.get().getNome() + ")"
+                    );
 
                     return titulo;
                 });
     }
+
+    @Transactional
+    public Optional<Titulo> removerTitulo(String token, UUID tituloId) {
+
+        UUID ceoId = jwtUtil.extrairCeoId(token);
+        UUID funcionarioId = jwtUtil.extrairFuncionarioId(token);
+
+        return titulos.findByCeoIdAndId(ceoId, tituloId)
+                .map(titulo -> {
+
+                    if (!titulo.isPago() && titulo.getFuncionario() == null) {
+                        List<ProdutosDosTitulos> itens = produtosDosTitulos.findByTituloId(titulo.getId());
+
+                        for (ProdutosDosTitulos item : itens) {
+                            Produto produto = item.getProduto();
+                            long quantidade = item.getQuantidade();
+
+                            if (titulo.getValor().compareTo(BigDecimal.ZERO) < 0) {
+                                produto.setEstoquePendente(produto.getEstoquePendente() - quantidade);
+                            } else {
+                                produto.setEstoqueReservado(produto.getEstoqueReservado() - quantidade);
+                                produto.setEstoqueDisponivel(produto.getEstoqueDisponivel() + quantidade);
+                            }
+
+                            produtos.save(produto);
+                        }
+                    }
+
+                    titulos.delete(titulo);
+
+                    Ceo ceo = new Ceo();
+                    ceo.setId(ceoId);
+
+                    Funcionario emissor = new Funcionario();
+                    emissor.setId(funcionarioId);
+
+                    servicoLogAuditoria.registrar(
+                            ceo,
+                            emissor,
+                            "CANCELAR",
+                            "TÍTULO no valor de " + titulo.getValor().toString(),
+                            titulo.getId(),
+                            "TÍTULO REMOVIDO DO SISTEMA (Autorizado por: " + emissor.getNome() + ")"
+                    );
+
+                    return titulo;
+                });
+    }
+
+
 
     @Transactional
     private void aprovar(Titulo titulo, String token) {
@@ -363,59 +524,5 @@ public class ServicoTitulos {
             }
         }
         titulo.setAprovado(true);
-    }
-
-    // ---------- Método auxiliar ----------
-    private Optional<Titulo> criarTituloCliente(Ceo ceo, Cliente cliente, TituloDTO dto, String token, Funcionario emissor) {
-        BigDecimal total = BigDecimal.ZERO;
-        Set<ProdutosDosTitulos> produtosTitulo = new HashSet<>();
-
-        for (ItemProdutoDTO item : dto.getProdutos()) {
-            var produtoOpt = produtos.findByCeoIdAndId(ceo.getId(), item.getProdutoId());
-            if (produtoOpt.isEmpty()) throw new IllegalStateException("Produto não encontrado");
-
-            var produto = produtoOpt.get();
-            BigDecimal subtotal = produto.getPreco().multiply(BigDecimal.valueOf(item.getQuantidade()));
-            total = total.add(subtotal);
-
-            ProdutosDosTitulos pdt = new ProdutosDosTitulos();
-            pdt.setNome(produto.getNome());
-            pdt.setValor(produto.getPreco());
-            pdt.setQuantidade(item.getQuantidade());
-            pdt.setProduto(produto);
-            produtosTitulo.add(pdt);
-        }
-
-        if (total.compareTo(BigDecimal.valueOf(10000)) > 0) {
-            for (var f : funcionarios.findAllByCeoId(ceo.getId()).stream()
-                    .filter(f -> f.getTipo().equals(TipoEspecializacao.GESTOR))
-                    .toList()) {
-                servicoEmail.enviarEmail(
-                        f.getEmail(),
-                        "Alerta: título elevado",
-                        "Um novo título de valor de " + total + "R$ foi emitido para o cliente: " + cliente.getNome()
-                                + "\nTítulo registrado pelo funcionario: " + emissor.getNome()
-                                + "\nE-mail do funcionário:" + emissor.getEmail()
-                );
-            }
-        }
-
-        boolean aprovado = total.compareTo(BigDecimal.valueOf(50000)) >= 0;
-
-        Titulo titulo = new Titulo();
-        titulo.setCeo(ceo);
-        titulo.setCliente(cliente);
-        titulo.setValor(total);
-        titulo.setCpf(cliente != null ? cliente.getCpf() : null);
-        titulo.setNome(cliente != null ? cliente.getNome() : "ClientePDV");
-        titulo.setTelefone(cliente != null ? cliente.getTelefone() : null);
-        titulo.setProdutosDosTitulos(produtosTitulo);
-        titulo.setEmissor(emissor);
-
-        if (aprovado) {
-            aprovar(titulo, token);
-        }
-
-        return Optional.of(titulos.save(titulo));
     }
 }

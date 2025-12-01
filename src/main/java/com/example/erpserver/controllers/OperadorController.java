@@ -1,8 +1,8 @@
 package com.example.erpserver.controllers;
 
 import com.example.erpserver.DTOs.ClienteDTO;
+import com.example.erpserver.DTOs.ItemProdutoDTO;
 import com.example.erpserver.DTOs.PaginaDTO;
-import com.example.erpserver.DTOs.TituloDTO;
 import com.example.erpserver.entities.Cliente;
 import com.example.erpserver.entities.Produto;
 import com.example.erpserver.entities.Titulo;
@@ -44,19 +44,43 @@ public class OperadorController {
         this.servicoTitulos = servicoTitulos;
     }
 
-    @PostMapping("/criarVenda")
+    @PostMapping("/venda/iniciar/{id}")
     public ResponseEntity<Titulo> venderParaCliente(
             @RequestHeader("Authorization") String authHeader,
-            @Valid @RequestBody TituloDTO dto
+            @PathVariable UUID id
     ) {
         String token = authHeader.replace("Bearer ", "");
 
-        return servicoTitulos.adicionarTituloCliente(token, dto)
+        return servicoTitulos.criarVendaCliente(token, id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.badRequest().build());
     }
 
-    @PutMapping("/vender/{id}")
+    @PostMapping("/venda/iniciar")
+    public ResponseEntity<Titulo> venderSemCliente(
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        String token = authHeader.replace("Bearer ", "");
+
+        return servicoTitulos.criarVendaCliente(token, null)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.badRequest().build());
+    }
+
+    @PutMapping("/venda/adicionar/{id}")
+    public ResponseEntity<Titulo> adicionarProduto(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable UUID id,
+            @Valid @RequestBody ItemProdutoDTO dto
+    ) {
+        String token = authHeader.replace("Bearer ", "");
+
+        return servicoTitulos.adicionarProduto(token, id, dto)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.badRequest().build());
+    }
+
+    @PutMapping("/venda/finalizar/{id}")
     public ResponseEntity<Titulo> confirmarVenda(
             @RequestHeader("Authorization") String authHeader,
             @PathVariable UUID id
@@ -64,6 +88,19 @@ public class OperadorController {
         String token = authHeader.replace("Bearer ", "");
 
         return servicoTitulos.pagarTitulo(token, id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.badRequest().build());
+    }
+
+    @DeleteMapping("/venda/cancelar/{id}")
+    public ResponseEntity<Titulo> cancelarVenda(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable UUID id,
+            @Valid @RequestBody String tokenAutorizacao
+    ) {
+        String token = authHeader.replace("Bearer ", "");
+
+        return servicoTitulos.removerTituloToken(token, id, tokenAutorizacao)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.badRequest().build());
     }

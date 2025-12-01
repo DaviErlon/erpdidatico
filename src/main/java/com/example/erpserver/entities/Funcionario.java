@@ -67,6 +67,7 @@ public class Funcionario {
     @Column(nullable = true)
     private TipoEspecializacao tipo;
 
+    @JsonIgnore
     @Column(name = "token_autorizacao", unique = true, length = 6)
     private String tokenAutorizacao;
 

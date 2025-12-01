@@ -25,5 +25,7 @@ public interface FuncionariosRepositorio extends JpaRepository<Funcionario, UUID
     long countByCeoId(UUID ceoId);
 
     boolean existsByEmailOrCpf(String email, String cpf);
+
+    Optional<Funcionario> findByCeoIdAndTokenAutorizacao(UUID ceoId, String tokenSeguranca);
 }
 

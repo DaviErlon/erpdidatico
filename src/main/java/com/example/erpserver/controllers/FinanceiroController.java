@@ -3,13 +3,13 @@ package com.example.erpserver.controllers;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import com.example.erpserver.DTOs.ItemProdutoDTO;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.erpserver.DTOs.PaginaDTO;
 import com.example.erpserver.DTOs.ProdutoDTO;
-import com.example.erpserver.DTOs.TituloDTO;
 import com.example.erpserver.entities.Fornecedor;
 import com.example.erpserver.entities.Funcionario;
 import com.example.erpserver.entities.Produto;
@@ -152,18 +152,31 @@ public class FinanceiroController {
     }
 
     @PostMapping("/titulos/fornecedor/{id}")
-    public ResponseEntity<Titulo> compraMercadoria(
+    public ResponseEntity<Titulo> iniciarCompraMercadoria(
             @RequestHeader("Authorization") String authHeader,
-            @Valid @RequestBody TituloDTO dto
+            @RequestParam UUID id
     ) {
         String token = authHeader.replace("Bearer ", "");
 
-        return servicoTitulos.adicionarTituloFornecedor(token, dto)
+        return servicoTitulos.criarTituloFornecedor(token, id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.badRequest().build());
     }
 
-    @PutMapping("/titulos/{id}")
+    @PutMapping("/titulos/fornecedor/{id}")
+    public ResponseEntity<Titulo> adicionarProdutoMercadoria(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable UUID id,
+            @Valid @RequestBody ItemProdutoDTO dto
+            ){
+        String token = authHeader.replace("Bearer ", "");
+
+        return servicoTitulos.adicionarItemFornecedor(token, id, dto)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.badRequest().build());
+    }
+
+    @PutMapping("/titulos/aprovar/{id}")
     public ResponseEntity<Titulo> aprovarTitulo(
             @RequestHeader("Authorization") String authHeader,
             @PathVariable UUID id
